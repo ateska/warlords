@@ -2,12 +2,12 @@
 
 ## Motivation
 
-I'm a long-time fan of the original [Warlords](https://en.wikipedia.org/wiki/Warlords_(1990_video_game)) computer game.  
-This project is a labor of love — my (free time) goal is to gradually bring this brilliant, atmospheric, and tactically rich game back to life, piece by piece.  
+I'm a long-time fan of the original [Warlords](https://en.wikipedia.org/wiki/Warlords_(1990_video_game)) computer game.
+This project is a labor of love — my (free time) goal is to gradually bring this brilliant, atmospheric, and tactically rich game back to life, piece by piece.
 That includes reverse engineering the original data formats, rebuilding compatible tools, and possibly enabling modern usage, preservation, or modding.
 This repository contains my findings, tools, decoders, converters, and maybe someday even a remastered or ported version of parts of the game.
 
-A **secondary goal** of this project is to **evaluate how modern AI tools can assist in reverse engineering, restoration, and visualization** of classic software.  
+A **secondary goal** of this project is to **evaluate how modern AI tools can assist in reverse engineering, restoration, and visualization** of classic software.
 This very repository — and the code, decoders, and insights it contains — were heavily accelerated through interactive AI-assisted analysis.
 From disassembling EXE routines to decoding image compression schemes and VGA bitplanes, AI served as a collaborator — not just a calculator.
 
@@ -30,7 +30,7 @@ Set in the mythical land of **Illuria**, the game features eight clans vying for
 - Selentines  
 - Lord Bane
 
-Gameplay centers around capturing cities, producing units, exploring ancient ruins with hero characters, and uncovering relics or allies.  
+Gameplay centers around capturing cities, producing units, exploring ancient ruins with hero characters, and uncovering relics or allies.
 Victory is achieved by controlling at least **two-thirds of the cities** on the map.
 
 Warlords was known for:
@@ -61,7 +61,7 @@ Contributions welcome!
 
 ## Why Open Source?
 
-Preserving classic games — not just the playable binaries, but the *creative architecture behind them* — matters.  
+Preserving classic games — not just the playable binaries, but the *creative architecture behind them* — matters.
 My hope is that by sharing these tools and notes, more fans, modders, and retro-engineering enthusiasts can contribute or benefit.
 
 If you're interested in collaborating or know something about SSG’s formats, let me know!
@@ -72,7 +72,7 @@ If you're interested in collaborating or know something about SSG’s formats, l
 To use the tools and scripts in this repository, you'll need access to the original game files — such as `WARLORDS.EXE`, `.PCK` images, or map files.
 These are **not included here** due to copyright restrictions.
 
-The most reliable and legal way to obtain these assets is by purchasing the game from [GOG.com]([https://www.gog.com/game/warlords](https://www.gog.com/en/game/warlords_i_ii)).  
+The most reliable and legal way to obtain these assets is by purchasing the game from [GOG.com]([https://www.gog.com/).
 GOG sells *Warlords 1 + 2 Deluxe* as a DRM-free package, bundled with DOSBox for easy launching.
 
 After installing it, you’ll find the game files inside the GOG installation directory — typically:
