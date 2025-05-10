@@ -66,6 +66,25 @@ My hope is that by sharing these tools and notes, more fans, modders, and retro-
 
 If you're interested in collaborating or know something about SSG’s formats, let me know!
 
+
+## Getting the Game Assets (Legally)
+
+To use the tools and scripts in this repository, you'll need access to the original game files — such as `WARLORDS.EXE`, `.PCK` images, or map files.
+These are **not included here** due to copyright restrictions.
+
+The most reliable and legal way to obtain these assets is by purchasing the game from [GOG.com]([https://www.gog.com/game/warlords](https://www.gog.com/en/game/warlords_i_ii)).  
+GOG sells *Warlords 1 + 2 Deluxe* as a DRM-free package, bundled with DOSBox for easy launching.
+
+After installing it, you’ll find the game files inside the GOG installation directory — typically:
+
+- **Windows:** `C:\GOG Games\Warlords\`
+- **macOS:** `/Applications/Warlords.app/Contents/Resources/game`
+
+You can copy the necessary `.PCK`, `.EXE`, or other binary files into this project folder to begin inspecting or extracting content.
+
+Please support the original creators and rights holders by purchasing a legal copy if you haven’t already.
+
+
 ## License
 
 This project is released under the **BSD License**.  
