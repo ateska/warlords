@@ -1,5 +1,7 @@
 # Warlords
 
+!()[./picts/MAIN.png]
+
 ## Motivation
 
 I'm a long-time fan of the original [Warlords](https://en.wikipedia.org/wiki/Warlords_(1990_video_game)) computer game.
