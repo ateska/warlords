@@ -5,8 +5,13 @@
 I'm a long-time fan of the original [Warlords](https://en.wikipedia.org/wiki/Warlords_(1990_video_game)) computer game.  
 This project is a labor of love — my (free time) goal is to gradually bring this brilliant, atmospheric, and tactically rich game back to life, piece by piece.  
 That includes reverse engineering the original data formats, rebuilding compatible tools, and possibly enabling modern usage, preservation, or modding.
-
 This repository contains my findings, tools, decoders, converters, and maybe someday even a remastered or ported version of parts of the game.
+
+A **secondary goal** of this project is to **evaluate how modern AI tools can assist in reverse engineering, restoration, and visualization** of classic software.  
+This very repository — and the code, decoders, and insights it contains — were heavily accelerated through interactive AI-assisted analysis.
+From disassembling EXE routines to decoding image compression schemes and VGA bitplanes, AI served as a collaborator — not just a calculator.
+
+It's both an act of restoration and a form of experimentation: **can an enthusiast with curiosity and good AI tooling revive a lost game format?**
 
 
 ## About the Game – *Warlords* (1990)
