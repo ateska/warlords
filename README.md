@@ -1,6 +1,6 @@
 # Warlords
 
-!()[./picts/MAIN.png]
+![Warlords MAIN picture upscaled by AI](./picts/MAIN.png)
 
 ## Motivation
 
