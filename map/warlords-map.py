@@ -168,9 +168,6 @@ class WarlordsMap:
 
 		image = self.TileIDs.astype(np.uint8)
 
-		print("Min TileID:", np.min(self.TileIDs))
-		print("Max TileID:", np.max(self.TileIDs))
-
 		# Display the tilemap
 		import matplotlib.pyplot
 		matplotlib.pyplot.figure(figsize=(8, 10))
@@ -211,7 +208,7 @@ class WarlordsMap:
 
 				# Draw tile ID in the center
 				if enable_text:
-					text = "{:02X}\n{:02X}".format(tile_id, tile_attrs)
+					text = "{:02X}\n{:02X}".format(tile_attrs, tile_id)
 					text_bbox = draw.textbbox((0, 0), text, font=font)
 					text_width = text_bbox[2] - text_bbox[0]
 					text_height = text_bbox[3] - text_bbox[1]
