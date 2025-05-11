@@ -46,6 +46,7 @@ Warlords was known for:
 This repository includes (or will include):
 
 - ✅ [Decoder](./pck) for `.PCK` files and sprite/image formats
+- ✅ [Decoder](./map) for `ILLURIA.MAP` file (the game map) including mapping to graphic tiles from `PICT/SCENERY.PCK`
 - [ ] [Reverse engineering](https://github.com/ateska/warlords/wiki/Reverse-engineering) notes from EXE disassembly and memory tracing
 - [ ] Experimental visualizations and upscalers
 
