@@ -46,7 +46,7 @@ Warlords was known for:
 This repository includes (or will include):
 
 - ✅ [Decoder](./pck) for `.PCK` files and sprite/image formats
-- [ ] Reverse engineering notes from EXE disassembly and memory tracing
+- [ ] [Reverse engineering](https://github.com/ateska/warlords/wiki/Reverse-engineering) notes from EXE disassembly and memory tracing
 - [ ] Experimental visualizations and upscalers
 
 All code is open-source, educational, and designed to assist others in understanding or restoring Warlords content.
