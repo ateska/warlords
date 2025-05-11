@@ -7,7 +7,7 @@ It decodes the compressed sprite/image format used in the original game and conv
 ## Features
 
 - ✅ Decompresses `.PCK` files using reverse-engineered [LZSS](https://en.wikipedia.org/wiki/Lempel–Ziv–Storer–Szymanski)-style backreference scheme  
-- ✅ Reconstructs VGA planar images (4 planes, 1-bit per plane)  
+- ✅ Reconstructs [VGA planar images](https://github.com/ateska/warlords/wiki/Video) (4 planes, 1-bit per plane)  
 - ✅ Converts to true 8-bit RGB output using the standard 16-color VGA palette  
 - ✅ Outputs the image via `matplotlib` or saves to `.png`
 
