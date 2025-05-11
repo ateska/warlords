@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>WASM Bitmap</title>
+	<style>
+		html, body, canvas {
+			margin: 0;
+			padding: 0;
+			width: 100%;
+			height: 100%;
+			overflow: hidden;
+		}
+	</style>
+</head>
+<body style="background-color: black;">
+	<canvas id="canvas"></canvas>
+	<script src="wasm_exec.js"></script>
+	<script>
+		const canvas = document.getElementById('canvas');
+		canvas.width = window.innerWidth;
+		canvas.height = window.innerHeight;
+
+		const go = new Go();
+		WebAssembly.instantiateStreaming(fetch("warlords.wasm"), go.importObject).then(result => {
+			go.run(result.instance);
+		});
+	</script>
+</body>
+</html>
