@@ -45,7 +45,7 @@ Warlords was known for:
 
 This repository includes (or will include):
 
-- ✅ Decoder for `.PCK` files and sprite/image formats
+- ✅ [Decoder](./pck) for `.PCK` files and sprite/image formats
 - [ ] Reverse engineering notes from EXE disassembly and memory tracing
 - [ ] Experimental visualizations and upscalers
 
