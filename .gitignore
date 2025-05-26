@@ -176,3 +176,5 @@ cython_debug/
 map/ILLURIA.MAP
 map/SCENERY.png
 map/ILLURIA.png
+
+.DS_Store
