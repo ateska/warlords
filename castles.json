@@ -1,0 +1,562 @@
+[
+	{
+		"name": "Deserton",
+		"x": 93,
+		"y": 1,
+		"level": 4,
+		"owner": 8
+	},
+	{
+		"name": "Zaigonne",
+		"x": 83,
+		"y": 4,
+		"level": 4,
+		"owner": 8
+	},
+	{
+		"name": "Beleri",
+		"x": 15,
+		"y": 5,
+		"level": 6,
+		"owner": 8
+	},
+	{
+		"name": "Tal",
+		"x": 51,
+		"y": 6,
+		"level": 4,
+		"owner": 8
+	},
+	{
+		"name": "Minbourne",
+		"x": 70,
+		"y": 6,
+		"level": 4,
+		"owner": 8
+	},
+	{
+		"name": "Tirfing",
+		"x": 68,
+		"y": 11,
+		"level": 4,
+		"owner": 8
+	},
+	{
+		"name": "Amenal",
+		"x": 12,
+		"y": 14,
+		"level": 4,
+		"owner": 8
+	},
+	{
+		"name": "Pareth",
+		"x": 57,
+		"y": 16,
+		"level": 5,
+		"owner": 8
+	},
+	{
+		"name": "Ungor",
+		"x": 87,
+		"y": 18,
+		"level": 4,
+		"owner": 8
+	},
+	{
+		"name": "Gorag",
+		"x": 94,
+		"y": 18,
+		"level": 4,
+		"owner": 8
+	},
+	{
+		"name": "Vival",
+		"x": 6,
+		"y": 19,
+		"level": 3,
+		"owner": 8
+	},
+	{
+		"name": "Bane's Citadel",
+		"x": 92,
+		"y": 24,
+		"level": 6,
+		"owner": 7
+	},
+	{
+		"name": "Needleton",
+		"x": 56,
+		"y": 27,
+		"level": 4,
+		"owner": 8
+	},
+	{
+		"name": "Gunthang",
+		"x": 32,
+		"y": 30,
+		"level": 5,
+		"owner": 8
+	},
+	{
+		"name": "Deephallow",
+		"x": 60,
+		"y": 30,
+		"level": 4,
+		"owner": 8
+	},
+	{
+		"name": "Ak-Giriel",
+		"x": 28,
+		"y": 31,
+		"level": 4,
+		"owner": 8
+	},
+	{
+		"name": "Ak-Enlie",
+		"x": 20,
+		"y": 34,
+		"level": 4,
+		"owner": 8
+	},
+	{
+		"name": "Ak-Farzon",
+		"x": 33,
+		"y": 34,
+		"level": 4,
+		"owner": 8
+	},
+	{
+		"name": "Meneloth",
+		"x": 67,
+		"y": 37,
+		"level": 5,
+		"owner": 8
+	},
+	{
+		"name": "Malikor",
+		"x": 98,
+		"y": 37,
+		"level": 4,
+		"owner": 8
+	},
+	{
+		"name": "Enmouth",
+		"x": 7,
+		"y": 39,
+		"level": 6,
+		"owner": 5
+	},
+	{
+		"name": "Argrond",
+		"x": 88,
+		"y": 39,
+		"level": 4,
+		"owner": 8
+	},
+	{
+		"name": "Barthel",
+		"x": 32,
+		"y": 40,
+		"level": 5,
+		"owner": 8
+	},
+	{
+		"name": "Marton",
+		"x": 18,
+		"y": 45,
+		"level": 4,
+		"owner": 8
+	},
+	{
+		"name": "Waybourne",
+		"x": 4,
+		"y": 51,
+		"level": 4,
+		"owner": 8
+	},
+	{
+		"name": "Dethal",
+		"x": 98,
+		"y": 51,
+		"level": 4,
+		"owner": 8
+	},
+	{
+		"name": "Greenweigh",
+		"x": 29,
+		"y": 52,
+		"level": 4,
+		"owner": 8
+	},
+	{
+		"name": "Upway",
+		"x": 46,
+		"y": 53,
+		"level": 3,
+		"owner": 8
+	},
+	{
+		"name": "Darclan",
+		"x": 91,
+		"y": 55,
+		"level": 4,
+		"owner": 8
+	},
+	{
+		"name": "Maridun",
+		"x": 57,
+		"y": 57,
+		"level": 4,
+		"owner": 8
+	},
+	{
+		"name": "Jessarton",
+		"x": 6,
+		"y": 58,
+		"level": 4,
+		"owner": 8
+	},
+	{
+		"name": "Zhoran",
+		"x": 28,
+		"y": 61,
+		"level": 5,
+		"owner": 8
+	},
+	{
+		"name": "Khamar",
+		"x": 39,
+		"y": 62,
+		"level": 6,
+		"owner": 2
+	},
+	{
+		"name": "Upbourne",
+		"x": 11,
+		"y": 63,
+		"level": 4,
+		"owner": 8
+	},
+	{
+		"name": "Cragmorton",
+		"x": 34,
+		"y": 65,
+		"level": 4,
+		"owner": 8
+	},
+	{
+		"name": "Paynor",
+		"x": 83,
+		"y": 65,
+		"level": 3,
+		"owner": 8
+	},
+	{
+		"name": "Carmel",
+		"x": 19,
+		"y": 70,
+		"level": 5,
+		"owner": 8
+	},
+	{
+		"name": "Dunethel",
+		"x": 60,
+		"y": 71,
+		"level": 6,
+		"owner": 6
+	},
+	{
+		"name": "Derridon",
+		"x": 54,
+		"y": 72,
+		"level": 4,
+		"owner": 8
+	},
+	{
+		"name": "Fleymark",
+		"x": 68,
+		"y": 73,
+		"level": 4,
+		"owner": 8
+	},
+	{
+		"name": "Pa-Kur",
+		"x": 86,
+		"y": 79,
+		"level": 5,
+		"owner": 8
+	},
+	{
+		"name": "Ar-Arak",
+		"x": 95,
+		"y": 79,
+		"level": 5,
+		"owner": 8
+	},
+	{
+		"name": "Dhar-Khosis",
+		"x": 37,
+		"y": 80,
+		"level": 6,
+		"owner": 8
+	},
+	{
+		"name": "Citadel of Fire",
+		"x": 59,
+		"y": 81,
+		"level": 5,
+		"owner": 8
+	},
+	{
+		"name": "Citadel of Ice",
+		"x": 63,
+		"y": 81,
+		"level": 5,
+		"owner": 8
+	},
+	{
+		"name": "Hithos",
+		"x": 20,
+		"y": 84,
+		"level": 6,
+		"owner": 8
+	},
+	{
+		"name": "Ubar",
+		"x": 48,
+		"y": 85,
+		"level": 4,
+		"owner": 8
+	},
+	{
+		"name": "Galin",
+		"x": 41,
+		"y": 87,
+		"level": 4,
+		"owner": 8
+	},
+	{
+		"name": "Herzag",
+		"x": 78,
+		"y": 87,
+		"level": 4,
+		"owner": 8
+	},
+	{
+		"name": "Gimlad",
+		"x": 89,
+		"y": 87,
+		"level": 4,
+		"owner": 8
+	},
+	{
+		"name": "Vernon",
+		"x": 48,
+		"y": 89,
+		"level": 5,
+		"owner": 8
+	},
+	{
+		"name": "Thurtz",
+		"x": 85,
+		"y": 89,
+		"level": 4,
+		"owner": 8
+	},
+	{
+		"name": "Kazrak",
+		"x": 58,
+		"y": 90,
+		"level": 4,
+		"owner": 8
+	},
+	{
+		"name": "Kor",
+		"x": 100,
+		"y": 90,
+		"level": 6,
+		"owner": 3
+	},
+	{
+		"name": "Ilnyr",
+		"x": 71,
+		"y": 93,
+		"level": 4,
+		"owner": 8
+	},
+	{
+		"name": "Ohmsmouth",
+		"x": 7,
+		"y": 94,
+		"level": 5,
+		"owner": 8
+	},
+	{
+		"name": "Himelton",
+		"x": 22,
+		"y": 95,
+		"level": 3,
+		"owner": 8
+	},
+	{
+		"name": "Wellmore",
+		"x": 4,
+		"y": 103,
+		"level": 4,
+		"owner": 8
+	},
+	{
+		"name": "Balad Naran",
+		"x": 90,
+		"y": 103,
+		"level": 6,
+		"owner": 8
+	},
+	{
+		"name": "Lador",
+		"x": 31,
+		"y": 105,
+		"level": 4,
+		"owner": 8
+	},
+	{
+		"name": "Duinoth",
+		"x": 68,
+		"y": 105,
+		"level": 4,
+		"owner": 8
+	},
+	{
+		"name": "Stormheim",
+		"x": 19,
+		"y": 107,
+		"level": 6,
+		"owner": 1
+	},
+	{
+		"name": "Angbar",
+		"x": 54,
+		"y": 109,
+		"level": 4,
+		"owner": 8
+	},
+	{
+		"name": "Ssuri",
+		"x": 59,
+		"y": 111,
+		"level": 4,
+		"owner": 8
+	},
+	{
+		"name": "Tasme",
+		"x": 8,
+		"y": 112,
+		"level": 4,
+		"owner": 8
+	},
+	{
+		"name": "Argenthorn",
+		"x": 42,
+		"y": 113,
+		"level": 4,
+		"owner": 8
+	},
+	{
+		"name": "Troy",
+		"x": 56,
+		"y": 114,
+		"level": 3,
+		"owner": 8
+	},
+	{
+		"name": "Garom",
+		"x": 87,
+		"y": 114,
+		"level": 4,
+		"owner": 8
+	},
+	{
+		"name": "Quiesce",
+		"x": 15,
+		"y": 119,
+		"level": 4,
+		"owner": 8
+	},
+	{
+		"name": "Varde",
+		"x": 8,
+		"y": 121,
+		"level": 4,
+		"owner": 8
+	},
+	{
+		"name": "Charling",
+		"x": 48,
+		"y": 121,
+		"level": 3,
+		"owner": 8
+	},
+	{
+		"name": "Herueth",
+		"x": 65,
+		"y": 122,
+		"level": 6,
+		"owner": 8
+	},
+	{
+		"name": "Elvallie",
+		"x": 41,
+		"y": 124,
+		"level": 6,
+		"owner": 4
+	},
+	{
+		"name": "Gildenhome",
+		"x": 33,
+		"y": 125,
+		"level": 5,
+		"owner": 8
+	},
+	{
+		"name": "Khorfe",
+		"x": 8,
+		"y": 129,
+		"level": 5,
+		"owner": 8
+	},
+	{
+		"name": "Gluk",
+		"x": 84,
+		"y": 129,
+		"level": 4,
+		"owner": 8
+	},
+	{
+		"name": "Loremark",
+		"x": 43,
+		"y": 132,
+		"level": 4,
+		"owner": 8
+	},
+	{
+		"name": "Gork",
+		"x": 86,
+		"y": 132,
+		"level": 4,
+		"owner": 8
+	},
+	{
+		"name": "Alfar's Gap",
+		"x": 22,
+		"y": 141,
+		"level": 4,
+		"owner": 8
+	},
+	{
+		"name": "Marthos",
+		"x": 62,
+		"y": 143,
+		"level": 6,
+		"owner": 0
+	}
+]
