@@ -19,7 +19,7 @@ It decodes the tile structure and renders the full map using the original in-gam
 `SCENERY.png` must be prepared from `PICTS/SCENERY.PCK`:
 
 ```
-../pck/warlords-pck.py /Applications/Warlords.app/Contents/Resources/game/PICTS/SCENERY.PCK -o SCENERY.png
+python3 ../pck/warlords-pck.py /Applications/Warlords.app/Contents/Resources/game/PICTS/SCENERY.PCK -o SCENERY.png
 ```
 
 ## Requirements

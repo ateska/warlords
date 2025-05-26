@@ -47,6 +47,8 @@ This repository includes (or will include):
 
 - ✅ [Decoder](./pck) for `.PCK` files and sprite/image formats
 - ✅ [Decoder](./map) for `ILLURIA.MAP` file (the game map) including mapping to graphic tiles from `PICT/SCENERY.PCK`
+- ✅ [Decoder](./exe) for `WARLORDS.EXE` file (the game map) to extract various resources
+- ✅ [Slicer](./armies) for `PICT/ARMIES.PCT` to extract individual army unit sprites
 - ✅ [PoC](https://ateska.github.io/warlords/) of Go/Webassembly application that can use obtained products
 - [ ] [Reverse engineering](https://github.com/ateska/warlords/wiki/Reverse-engineering) notes from EXE disassembly and memory tracing
 - [ ] Experimental visualizations and upscalers
