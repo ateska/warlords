@@ -13,17 +13,21 @@
 		}
 	</style>
 </head>
-<body style="background-color: black;">
-	<canvas id="canvas"></canvas>
+<body style="background-color: black; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0;">
+	<div id="loadingText" style="font-size: 30px; font-family: Arial;">Loading ...</div>
+	<canvas id="canvas" style="display: none;"></canvas>
 	<script src="wasm_exec.js"></script>
 	<script>
 		const canvas = document.getElementById('canvas');
+		const loadingText = document.getElementById('loadingText');
 		canvas.width = window.innerWidth;
 		canvas.height = window.innerHeight;
 
 		const go = new Go();
 		WebAssembly.instantiateStreaming(fetch("warlords.wasm"), go.importObject).then(result => {
 			go.run(result.instance);
+			loadingText.style.display = 'none';
+			canvas.style.display = 'block';
 		});
 	</script>
 </body>
