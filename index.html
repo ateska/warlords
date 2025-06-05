@@ -3,6 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<title>Warlords</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 	<style>
 		html, body, canvas {
 			margin: 0;
@@ -10,10 +11,23 @@
 			width: 100%;
 			height: 100%;
 			overflow: hidden;
+			touch-action: none; /* Prevents default touch actions like scrolling */
+		}
+
+		body {
+			background-color: black;
+			color: white;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			height: 100vh;
+			overflow: hidden; /* Ensures no scrolling */
+			position: fixed; /* Keeps the body fixed in place */
+			width: 100vw;
 		}
 	</style>
 </head>
-<body style="background-color: black; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0;">
+<body>
 	<div id="loadingText" style="font-size: 30px; font-family: Arial;">Loading ...</div>
 	<canvas id="canvas" style="display: none;"></canvas>
 	<script src="wasm_exec.js"></script>
@@ -25,9 +39,9 @@
 
 		const go = new Go();
 		WebAssembly.instantiateStreaming(fetch("warlords.wasm"), go.importObject).then(result => {
-			go.run(result.instance);
-			loadingText.style.display = 'none';
+			loadingText.remove();
 			canvas.style.display = 'block';
+			go.run(result.instance);
 		});
 	</script>
 </body>
