@@ -50,6 +50,8 @@
 		const go = new Go();
 		WebAssembly.instantiateStreaming(fetch("warlords.wasm"), go.importObject).then(result => {
 			loadingText.remove();
+			canvas.tabIndex = 0;
+			canvas.focus();
 			go.run(result.instance);
 		});
 	</script>
