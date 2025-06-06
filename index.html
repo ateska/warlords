@@ -25,11 +25,21 @@
 			position: fixed; /* Keeps the body fixed in place */
 			width: 100vw;
 		}
+
+		#loadingText {
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			z-index: 1;
+			font-size: 30px;
+			font-family: Arial;
+		}
 	</style>
 </head>
 <body>
-	<div id="loadingText" style="font-size: 30px; font-family: Arial;">Loading ...</div>
-	<canvas id="canvas" style="display: none;"></canvas>
+	<canvas id="canvas"></canvas>
+	<div id="loadingText">Loading ...</div>
 	<script src="wasm_exec.js"></script>
 	<script>
 		const canvas = document.getElementById('canvas');
@@ -40,7 +50,6 @@
 		const go = new Go();
 		WebAssembly.instantiateStreaming(fetch("warlords.wasm"), go.importObject).then(result => {
 			loadingText.remove();
-			canvas.style.display = 'block';
 			go.run(result.instance);
 		});
 	</script>
