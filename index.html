@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<title>Warlords</title>
-	<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+	<meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no">
 	<style>
 		html, body, canvas {
 			margin: 0;
@@ -20,9 +20,9 @@
 			display: flex;
 			justify-content: center;
 			align-items: center;
-			height: 100vh;
 			overflow: hidden; /* Ensures no scrolling */
 			position: fixed; /* Keeps the body fixed in place */
+			height: 100vh;
 			width: 100vw;
 		}
 
@@ -44,14 +44,14 @@
 	<script>
 		const canvas = document.getElementById('canvas');
 		const loadingText = document.getElementById('loadingText');
-		canvas.width = window.innerWidth;
-		canvas.height = window.innerHeight;
 
 		const go = new Go();
 		WebAssembly.instantiateStreaming(fetch("warlords.wasm"), go.importObject).then(result => {
 			loadingText.remove();
 			canvas.tabIndex = 0;
 			canvas.focus();
+			canvas.width = window.visualViewport.width;
+			canvas.height = window.visualViewport.height;
 			go.run(result.instance);
 		});
 	</script>
