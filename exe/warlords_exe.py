@@ -48,6 +48,32 @@ def extract_castles(f):
 	return export
 
 
+def extract_ruins(f):
+	f.seek(326342)
+
+	ruins_count = 40
+	export = []
+
+	for i in range(ruins_count):
+		ruins_data = f.read(28)
+		x = struct.unpack('<4B20s4B', ruins_data)
+
+		assert x[1] == 0
+		assert x[3] == 0
+		assert x[6] == 0
+		assert x[7] == 0
+		assert x[8] == 0
+
+		export.append({
+			"name": x[4].decode("ascii").rstrip("\x00"),
+			"x": x[0],
+			"y": x[2],
+			"type": x[5],
+		})
+
+	return export
+
+
 def main():
 	parser = argparse.ArgumentParser(
 		description="Decode Warlords WARLORDS.EXE file.",
@@ -71,8 +97,12 @@ def main():
 	# Extract castles
 	with open(args.file, "rb") as f:
 		castles = extract_castles(f)
-		with open("castles.json", "w") as f:
-			json.dump(castles, f, indent='\t')
+		with open("castles.json", "w") as fo:
+			json.dump(castles, fo, indent='\t')
+
+		ruins = extract_ruins(f)
+		with open("ruins.json", "w") as fo:
+			json.dump(ruins, fo, indent='\t')
 
 
 if __name__ == "__main__":
