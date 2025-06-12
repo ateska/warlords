@@ -1,0 +1,242 @@
+[
+	{
+		"name": "Temple of Iris",
+		"x": 22,
+		"y": 66,
+		"type": 3
+	},
+	{
+		"name": "Seer of the River",
+		"x": 45,
+		"y": 30,
+		"type": 2
+	},
+	{
+		"name": "Temple of Emrik",
+		"x": 72,
+		"y": 57,
+		"type": 3
+	},
+	{
+		"name": "Golden Library",
+		"x": 102,
+		"y": 1,
+		"type": 1
+	},
+	{
+		"name": "Great Library",
+		"x": 11,
+		"y": 117,
+		"type": 1
+	},
+	{
+		"name": "Temple of Miridine",
+		"x": 38,
+		"y": 93,
+		"type": 3
+	},
+	{
+		"name": "Temple of Lurinth",
+		"x": 74,
+		"y": 147,
+		"type": 3
+	},
+	{
+		"name": "Grand Oracle",
+		"x": 105,
+		"y": 133,
+		"type": 2
+	},
+	{
+		"name": "Greyport Ruins",
+		"x": 21,
+		"y": 24,
+		"type": 4
+	},
+	{
+		"name": "Emperors' Crypt",
+		"x": 7,
+		"y": 34,
+		"type": 4
+	},
+	{
+		"name": "Harvest Stone",
+		"x": 18,
+		"y": 53,
+		"type": 4
+	},
+	{
+		"name": "Old Woods Tower",
+		"x": 12,
+		"y": 54,
+		"type": 4
+	},
+	{
+		"name": "Druids' Temple",
+		"x": 29,
+		"y": 24,
+		"type": 4
+	},
+	{
+		"name": "Ruins of Kabor",
+		"x": 49,
+		"y": 11,
+		"type": 4
+	},
+	{
+		"name": "Nirn's Crypt",
+		"x": 44,
+		"y": 57,
+		"type": 4
+	},
+	{
+		"name": "Nirn's Deep",
+		"x": 45,
+		"y": 71,
+		"type": 4
+	},
+	{
+		"name": "Mirk's Decay",
+		"x": 55,
+		"y": 36,
+		"type": 4
+	},
+	{
+		"name": "Wizard's Hearth",
+		"x": 69,
+		"y": 18,
+		"type": 4
+	},
+	{
+		"name": "Dragon Halls",
+		"x": 68,
+		"y": 66,
+		"type": 4
+	},
+	{
+		"name": "Bridgetower",
+		"x": 76,
+		"y": 41,
+		"type": 4
+	},
+	{
+		"name": "Crypt of Molok",
+		"x": 92,
+		"y": 6,
+		"type": 4
+	},
+	{
+		"name": "Halls of Chaos",
+		"x": 100,
+		"y": 62,
+		"type": 4
+	},
+	{
+		"name": "Dragontower Ruins",
+		"x": 86,
+		"y": 50,
+		"type": 4
+	},
+	{
+		"name": "Nev Dolar",
+		"x": 93,
+		"y": 68,
+		"type": 4
+	},
+	{
+		"name": "The Old Inn",
+		"x": 16,
+		"y": 99,
+		"type": 4
+	},
+	{
+		"name": "Throne of Horan",
+		"x": 24,
+		"y": 122,
+		"type": 4
+	},
+	{
+		"name": "Throne of Balnor",
+		"x": 18,
+		"y": 133,
+		"type": 4
+	},
+	{
+		"name": "Giant's Tomb",
+		"x": 24,
+		"y": 126,
+		"type": 4
+	},
+	{
+		"name": "Tower of Death",
+		"x": 33,
+		"y": 81,
+		"type": 4
+	},
+	{
+		"name": "Ruins of Haviel",
+		"x": 42,
+		"y": 118,
+		"type": 4
+	},
+	{
+		"name": "Dusk Stone",
+		"x": 34,
+		"y": 145,
+		"type": 4
+	},
+	{
+		"name": "Dawn Stone",
+		"x": 37,
+		"y": 145,
+		"type": 4
+	},
+	{
+		"name": "Gemhold",
+		"x": 69,
+		"y": 132,
+		"type": 4
+	},
+	{
+		"name": "Dark Barrows",
+		"x": 66,
+		"y": 102,
+		"type": 4
+	},
+	{
+		"name": "Dwarf Halls",
+		"x": 57,
+		"y": 81,
+		"type": 4
+	},
+	{
+		"name": "Guardian",
+		"x": 77,
+		"y": 121,
+		"type": 4
+	},
+	{
+		"name": "Tower of Night",
+		"x": 100,
+		"y": 109,
+		"type": 4
+	},
+	{
+		"name": "Crypt of Baal",
+		"x": 87,
+		"y": 125,
+		"type": 4
+	},
+	{
+		"name": "Tomb of Naar",
+		"x": 82,
+		"y": 117,
+		"type": 4
+	},
+	{
+		"name": "Monolyth",
+		"x": 94,
+		"y": 122,
+		"type": 4
+	}
+]
