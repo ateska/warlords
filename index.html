@@ -3,8 +3,14 @@
 <head>
 	<meta charset="utf-8">
 	<title>Warlords</title>
-	<meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no">
+	<meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, viewport-fit=cover, maximum-scale=1.0">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 	<style>
+		html {
+			height: -webkit-fill-available;
+		}
+		
 		html, body, canvas {
 			margin: 0;
 			padding: 0;
@@ -22,8 +28,10 @@
 			align-items: center;
 			overflow: hidden; /* Ensures no scrolling */
 			position: fixed; /* Keeps the body fixed in place */
-			height: 100vh;
+			height: 100vh; /* Fallback */
+			height: -webkit-fill-available;  /* iOS only, we want the canvas to fill the screen but not be obstructed by the status bar */
 			width: 100vw;
+			padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 		}
 
 		#loadingText {
