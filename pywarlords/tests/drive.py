@@ -8,6 +8,7 @@ import os, sys
 os.environ.setdefault('SDL_VIDEODRIVER', 'dummy')
 os.environ.setdefault('SDL_AUDIODRIVER', 'dummy')
 os.environ.setdefault('WARLORDS_NOSOUND', '1')
+import asyncio
 import pygame
 from warlords.gamedata import GameData
 from warlords.ui import game_ui
@@ -54,7 +55,9 @@ class Driver:
                 self.script.insert(0, ('idle', n - 1))
             return []
         if kind == 'call':
-            item[1](self.ui)
+            r = item[1](self.ui)
+            if asyncio.iscoroutine(r):
+                return [('callback', lambda: r)]
             return []
         return []
 
@@ -65,7 +68,7 @@ def run(script, prefix='d', setup=None, quick=None, load=None, seed=5):
     drv = Driver(ui, script, prefix)
     ui.events = drv
     if setup: setup(ui)
-    ui.run(load_path=load, quick=quick)
+    asyncio.run(ui.run(load_path=load, quick=quick))
     return ui
 
 if __name__ == '__main__':

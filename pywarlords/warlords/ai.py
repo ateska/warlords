@@ -129,9 +129,9 @@ class AI:
 	# ==================================================================
 	# production (FUN_277d_0010)
 	# ==================================================================
-	def production(self, p):
+	async def production(self, p):
 		g = self.g
-		g.transit_arrivals(p, False)
+		await g.transit_arrivals(p, False)
 		for c in self.s.cities:
 			g.production_tick(c, False)
 
@@ -261,7 +261,7 @@ class AI:
 				roles[c.index] = (3, self._target_value(c))
 		return roles
 
-	def build_for_front(self, c):
+	async def build_for_front(self, c):
 		"""FUN_29b2_10f4."""
 		s = self.s
 		if not any(c.can[t] and t != NAVY and c.strength[t] >= 4 for t in range(10)):
@@ -288,7 +288,7 @@ class AI:
 			bs = None
 			for i, (role, val) in roles.items():
 				if role in (1, 2) and len(self.g.vectors_into(s.cities[i])) < 4:
-					need, garrison = self.threat(s.cities[i], dry=True)
+					need, garrison = await self.threat(s.cities[i], dry=True)
 					if val < garrison:
 						sc = max(0, garrison - val) + s.rng.dice(1, 2, 0)
 						if bs is None or sc > bs:
@@ -335,7 +335,7 @@ class AI:
 	# ==================================================================
 	# city management
 	# ==================================================================
-	def threat(self, c, dry=False):
+	async def threat(self, c, dry=False):
 		"""FUN_29b2_0350: (need, garrison); may raze the city or repair its defence."""
 		s = self.s
 		p = self.p
@@ -360,7 +360,7 @@ class AI:
 			pl = s.players[p]
 			if own_n == 0 and warn > 1 and s.ncities[p] > 6 and c.ai_target == -1 and pl.razer and \
 					dist(c.x, c.y, pl.cap_x, pl.cap_y) > 20:
-				self.g.raze_city(c, p)
+				await self.g.raze_city(c, p)
 				return 0, garrison
 			if s.level[p] > 0:
 				dc = self.d.def_cost
@@ -392,7 +392,7 @@ class AI:
 		i = a.y * MAP_W + a.x
 		s.map[i] = (s.map[i] & 0xf87f) | (a.owner << 7) | M_ARMY
 
-	def organise(self, c, mode):
+	async def organise(self, c, mode):
 		"""FUN_24ef_040e: garrison, stacking and disbanding in one city.
 		Returns (ok, new_mode)."""
 		s = self.s
@@ -417,7 +417,7 @@ class AI:
 		c.ai_strong = n_strong
 		if any_targeted and s.rng.dice(1, 4, -1) == 0:
 			return True, mode
-		need, garrison = self.threat(c)
+		need, garrison = await self.threat(c)
 		if need == 0:
 			t = self.nearest_nonneutral(c.x, c.y)
 			for a in L:
@@ -575,7 +575,7 @@ class AI:
 				s.free_army(a)
 		return True, mode
 
-	def expand(self, c):
+	async def expand(self, c):
 		"""FUN_27ed_061e: grab undefended enemy cities, expand into neutral neighbours."""
 		s = self.s
 		p = self.p
@@ -604,7 +604,7 @@ class AI:
 					skip -= 1
 		if c.ai_target == -1 and N:
 			s.ai_state[c.index] = 0
-			ok, mode = self.organise(c, 0)
+			ok, mode = await self.organise(c, 0)
 			if not ok:
 				s.ai_state[c.index] = -1
 				return 0
@@ -640,7 +640,7 @@ class AI:
 	# ==================================================================
 	# targets and diplomacy
 	# ==================================================================
-	def update_war(self):
+	async def update_war(self):
 		"""FUN_24ef_0004."""
 		s = self.s
 		p = self.p
@@ -685,13 +685,13 @@ class AI:
 		if w == -1 or not s.alive[w] or s.ncities[w] == 0:
 			s.war[p] = -1
 		elif w != old:
-			self.g.ui.status("%s declares war on %s" % (self.g.clan_name(p), self.g.clan_name(w)))
+			await self.g.ui.status("%s declares war on %s" % (self.g.clan_name(p), self.g.clan_name(w)))
 
-	def choose_target(self):
+	async def choose_target(self):
 		"""FUN_24ef_1292: pick a new (source city, enemy city) pair."""
 		s = self.s
 		p = self.p
-		self.update_war()
+		await self.update_war()
 		T = s.war[p]
 		if T == -1:
 			return None
@@ -839,7 +839,7 @@ class AI:
 				return best
 		return res
 
-	def truce(self):
+	async def truce(self):
 		"""FUN_29b2_05a8."""
 		s = self.s
 		me = self.p
@@ -873,7 +873,7 @@ class AI:
 			if 0 <= a.goal < 80:
 				if (a.owner == me and self.owner(a.goal) == E) or (a.owner == E and self.owner(a.goal) == me):
 					a.goal = a.origin if 0 <= a.origin < 80 else -1
-		self.g.ui.status("%s signs a truce with %s" % (self.g.clan_name(me), self.g.clan_name(E)))
+		await self.g.ui.status("%s signs a truce with %s" % (self.g.clan_name(me), self.g.clan_name(E)))
 		s.war[me] = s.war[E] = -1
 
 	# ==================================================================
@@ -1391,7 +1391,7 @@ class AI:
 			a.goal = newt
 		return False
 
-	def ai_move(self, moved_as_group):
+	async def ai_move(self, moved_as_group):
 		"""FUN_3257_04c6 + FUN_3257_0004: move the selected group toward its goal."""
 		s = self.s
 		g = self.g
@@ -1425,7 +1425,7 @@ class AI:
 			site_goal = True
 		else:
 			return 0
-		res, nx, ny = self.step_path(tx, ty, agg=1 if moved_as_group else 0)
+		res, nx, ny = await self.step_path(tx, ty, agg=1 if moved_as_group else 0)
 		group = g.selected()
 		if res == 4:
 			t = self.nearest_nonneutral(cur.x, cur.y)
@@ -1449,22 +1449,22 @@ class AI:
 				return 1
 			if s.group_moves > 1 and s.on_map(nx, ny) and s.tclass(nx, ny) == CITY and target_city is not None:
 				if target_city.owner == NEUTRAL:
-					self.assault_neutral(nx, ny)
+					await self.assault_neutral(nx, ny)
 				elif target_city.owner != p:
 					if not self.gate_decision(cur, group):
 						return 1
-					self.attack(nx, ny)
+					await self.attack(nx, ny)
 				for a in g.selected():
 					if a.owner != 0xff:
 						a.origin = -1
 						a.goal = -1
 			return 1
 		if res == 5:
-			self.attack(nx, ny)
+			await self.attack(nx, ny)
 			return 1
 		return 1
 
-	def step_path(self, tx, ty, agg=0):
+	async def step_path(self, tx, ty, agg=0):
 		"""FUN_3257_0004. Returns (code, next_x, next_y): 1 arrived, 2 adjacent/blocked by city,
 		3 stopped, 4 no path, 5 enemy army in the way."""
 		s = self.s
@@ -1514,12 +1514,12 @@ class AI:
 			s.map[i2] = (s.map[i2] & 0xf87f) | (p << 7) | M_ARMY
 			if s.count_at(ox, oy) == 0:
 				s.map[oy * MAP_W + ox] &= 0xf7ff
-			g.ui.army_moved(g, movers, ox, oy, nx, ny)
+			await g.ui.army_moved(g, movers, ox, oy, nx, ny)
 			if s.group_moves == 0:
 				return 3, nx, ny
 		return 3, nx, ny
 
-	def attack(self, tx, ty):
+	async def attack(self, tx, ty):
 		"""FUN_2289_119e: computer attack on a tile with enemies or an enemy city."""
 		s = self.s
 		g = self.g
@@ -1538,16 +1538,16 @@ class AI:
 		dname = g.clan_name(defender)
 		g.battle_resolve(b)
 		if show:
-			g.ui.battle(g, b, "%s: you are being attacked!" % dname)
+			await g.ui.battle(g, b, "%s: you are being attacked!" % dname)
 		s.rebuild_army_flags()
 		if show:
 			if b.result == 0:
-				g.ui.status("%s: you are victorious!" % dname)
+				await g.ui.status("%s: you are victorious!" % dname)
 			elif s.cur_hero is not None and s.armies[s.cur_hero].owner == p:
-				g.ui.status("%s has won the battle!" % s.hero_name(s.armies[s.cur_hero]))
+				await g.ui.status("%s has won the battle!" % s.hero_name(s.armies[s.cur_hero]))
 			else:
-				g.ui.status("%s: you have lost!" % dname)
-		g.battle_aftermath(b)
+				await g.ui.status("%s: you have lost!" % dname)
+		await g.battle_aftermath(b)
 		if b.result == 1:
 			s.map[ty * MAP_W + tx] |= M_ARMY
 		alive = [a for a in group if a.owner == p]
@@ -1556,7 +1556,7 @@ class AI:
 		if not alive:
 			s.cur_hero = None
 
-	def assault_neutral(self, tx, ty):
+	async def assault_neutral(self, tx, ty):
 		"""FUN_2491_0341."""
 		s = self.s
 		g = self.g
@@ -1567,12 +1567,12 @@ class AI:
 			a.x, a.y = tx, ty
 			a.moves = max(0, a.moves - 2)
 		s.group_moves -= 2
-		g.neutral_assault(tx, ty, human=False, attackers=group)
+		await g.neutral_assault(tx, ty, human=False, attackers=group)
 		alive = [a for a in group if a.owner == self.p]
 		s.group = [a.index for a in alive]
 		s.cur_army = alive[0].index if alive else None
 
-	def move_all(self):
+	async def move_all(self):
 		"""FUN_27ed_0a3e."""
 		s = self.s
 		g = self.g
@@ -1630,7 +1630,7 @@ class AI:
 					a.goal = -1
 				res = 1
 			else:
-				res = self.ai_move(moved_as_group)
+				res = await self.ai_move(moved_as_group)
 			if s.group_mode == 0 and s.cur_army is not None:
 				cur = s.armies[s.cur_army]
 				if cur.owner == p and (cur.flags & F_AI_MISSION) and cur.goal == -1:
@@ -1644,7 +1644,7 @@ class AI:
 							cur.goal = t
 						g.compute_group()
 						s.group_moves = cur.moves
-						self.ai_move(moved_as_group)
+						await self.ai_move(moved_as_group)
 						if s.cur_army is None or cur.owner != p:
 							break
 						if cur.moves == mv or cur.moves == 0:
@@ -1670,12 +1670,12 @@ class AI:
 	# ==================================================================
 	# main (FUN_27ed_0006)
 	# ==================================================================
-	def main(self, p):
+	async def main(self, p):
 		s = self.s
 		g = self.g
 		lvl = s.level[p]
 		self.cls_table = list(self.d.ai_class_warlord if lvl == 3 else self.d.ai_class_normal)
-		self.truce()
+		await self.truce()
 		if not any(s.players[q].razer for q in range(8) if s.alive[q] and not s.human[q]):
 			s.players[s.rng.dice(1, 8, -1) & 7].razer = 1
 		if sum(1 for q in range(8) if s.alive[q]) < 2:
@@ -1691,12 +1691,12 @@ class AI:
 			pl.thrift = 0
 		if pl.gold < self.d.ai_thrift_gold[max(0, min(3, pl.thrift))] and s.income[p] < s.upkeep[p] + 20:
 			pl.thrift = min(3, pl.thrift + 1)
-		self.move_all()
+		await self.move_all()
 		s.ai_state = [-1] * 80
 		expanding = 0
 		for c in s.cities:
 			if c.owner == p:
-				expanding += self.expand(c)
+				expanding += await self.expand(c)
 		nDef = nAtk = nAtkGround = 0
 		for ci in range(79, -1, -1):
 			c = s.cities[ci]
@@ -1705,7 +1705,7 @@ class AI:
 			if c.ai_target != -1 and self.owner(c.ai_target) == p:
 				c.ai_target = -1
 			mode = 5 if c.ai_target != -1 else (4 if c.vector else 3)
-			ok, mode = self.organise(c, mode)
+			ok, mode = await self.organise(c, mode)
 			s.ai_state[ci] = mode if ok else -1
 			if mode >= 5:
 				nAtk += 1
@@ -1723,7 +1723,7 @@ class AI:
 		if lvl == 3 and s.ncities[p] // 4 < nAtkGround:
 			want = False
 		if want:
-			r = self.choose_target()
+			r = await self.choose_target()
 			if r is not None:
 				src, tgt = r
 				sc = s.cities[src]
@@ -1742,12 +1742,12 @@ class AI:
 				self.build_best(c, -1)
 			elif st in (3, 4):
 				if pl.gold >= 50:
-					self.build_for_front(c)
+					await self.build_for_front(c)
 			elif st in (5, 6):
 				self.build_attack(c, -1)
 		if lvl != 0:
 			self.heroes_and_monsters()
-		self.move_all()
+		await self.move_all()
 		for ci in range(79, -1, -1):
 			c = s.cities[ci]
 			if c.owner != p:

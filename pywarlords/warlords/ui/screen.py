@@ -1,5 +1,8 @@
 """Window, scaling and drawing primitives for the 640x200 (EGA/VGA) screen."""
 import os
+import asyncio
+import sys
+
 import pygame
 
 from .assets import NATIVE_W, NATIVE_H
@@ -47,6 +50,9 @@ CURSOR_REGIONS = {
 DIR_CURSORS = ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw']
 
 
+WEB = sys.platform == 'emscripten'
+
+
 class Screen:
 
 	def __init__(self, assets, scale=2, fullscreen=False):
@@ -64,36 +70,37 @@ class Screen:
 
 	def _make_window(self):
 		flags = pygame.RESIZABLE
-		if self.fullscreen:
+		if WEB:
+			# the page scales the canvas; 640x400 keeps the 2:1 pixel aspect of the original
+			self.window = pygame.display.set_mode((NATIVE_W, NATIVE_H * 2))
+		elif self.fullscreen:
 			self.window = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 		else:
 			self.window = pygame.display.set_mode((NATIVE_W * self.scale, NATIVE_H * 2 * self.scale), flags)
 		pygame.display.set_caption("Warlords")
 
 	def toggle_fullscreen(self):
+		if WEB:
+			return
 		self.fullscreen = not self.fullscreen
 		self._make_window()
 
 	def _build_cursors(self):
-		import numpy as np
+		from .assets import indexed_surface
 		idx = self.assets.idx['MOUSE']
-		pal = self.assets.pal[0]
+		colors = [tuple(c) for c in self.assets.pal[0]] + [(0, 0, 0)] * 240
+		colors[9] = (255, 0, 255)                  # colour 9 is transparent in MOUSE.PCK
 		for name, (x0, y0, x1, y1, hot) in CURSOR_REGIONS.items():
-			sub = idx[y0:y1, x0:x1]
-			m = sub != 9
-			ys, xs = np.where(m)
-			if len(xs) == 0:
+			sub = idx.crop(x0, y0, x1, y1)
+			pts = [(x, y) for y in range(sub.height) for x in range(sub.width) if sub.pixel(x, y) != 9]
+			if not pts:
 				continue
-			bx0, bx1, by0, by1 = xs.min(), xs.max() + 1, ys.min(), ys.max() + 1
-			sub = sub[by0:by1, bx0:bx1]
-			arr = np.zeros((sub.shape[0], sub.shape[1], 3), np.uint8)
-			for i in range(16):
-				arr[sub == i] = pal[i]
-			arr[sub == 9] = (255, 0, 255)
-			s = pygame.image.frombuffer(arr.tobytes(), (sub.shape[1], sub.shape[0]), 'RGB').convert()
-			s.set_colorkey((255, 0, 255))
+			xs = [p[0] for p in pts]
+			ys = [p[1] for p in pts]
+			sub = sub.crop(min(xs), min(ys), max(xs) + 1, max(ys) + 1)
+			s = indexed_surface(sub, colors, key_index=9)
 			if hot is None:
-				hot = (sub.shape[1] // 2, sub.shape[0] // 2)
+				hot = (sub.width // 2, sub.height // 2)
 			self._cursors[name] = (s, hot)
 
 	# ------------------------------------------------------------------
@@ -126,8 +133,12 @@ class Screen:
 		pygame.transform.scale(frame, (r.w, r.h), self.window.subsurface(r))
 		pygame.display.flip()
 
-	def tick(self, fps=30):
-		self.clock.tick(fps)
+	async def tick(self, fps=30):
+		"""End of a frame of a modal loop: hand control back (to the browser under pygbag)."""
+		if WEB:
+			await asyncio.sleep(0)
+		else:
+			self.clock.tick(fps)
 
 	# ------------------------------------------------------------------
 	# drawing helpers (palette index colours)

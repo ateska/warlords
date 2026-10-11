@@ -1,5 +1,6 @@
 """python -m warlords [--data GAME_DIR]"""
 import argparse
+import asyncio
 import os
 import sys
 
@@ -10,6 +11,15 @@ def find_game_dir(cands):
 		if c and os.path.isdir(c) and find_file(c, 'WARLORDS.EXE') and find_file(c, 'PICTS/SCENERY.PCK'):
 			return c
 	return None
+
+
+def game_dir_candidates(data=None):
+	"""Where to look for the original game files: --data, $WARLORDS_DATA, the current folder,
+	this repository's ../warlords, and the GOG installation on macOS."""
+	here = os.path.dirname(os.path.abspath(__file__))
+	return [data, os.environ.get("WARLORDS_DATA"), os.getcwd(), os.path.join(os.getcwd(), "warlords"),
+		os.path.join(here, "..", "..", "warlords"), os.path.join(here, "..", "game"),
+		"/Applications/Warlords.app/Contents/Resources/game"]
 
 
 def main(argv=None):
@@ -28,11 +38,7 @@ def main(argv=None):
 	ap.add_argument("--tough", action="store_true", help="the hidden 't' switch: computer players get Enhance")
 	args = ap.parse_args(argv)
 
-	here = os.path.dirname(os.path.abspath(__file__))
-	cands = [args.data, os.environ.get("WARLORDS_DATA"), os.getcwd(), os.path.join(os.getcwd(), "warlords"),
-		os.path.join(here, "..", "..", "warlords"), os.path.join(here, "..", "game"),
-		"/Applications/Warlords.app/Contents/Resources/game"]
-	game_dir = find_game_dir(cands)
+	game_dir = find_game_dir(game_dir_candidates(args.data))
 	if game_dir is None:
 		print("Cannot find the original Warlords files. Use --data to point to the folder with "
 			"WARLORDS.EXE, ILLURIA.MAP and PICTS/.", file=sys.stderr)
@@ -49,7 +55,7 @@ def main(argv=None):
 		quick = ([1 if p in humans else 0 for p in range(8)], [args.level] * 8)
 	if args.tough:
 		ui.extra_tough = True
-	ui.run(load_path=args.load, quick=quick)
+	asyncio.run(ui.run(load_path=args.load, quick=quick))
 	return 0
 
 

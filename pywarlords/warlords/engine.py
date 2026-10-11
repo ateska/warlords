@@ -178,7 +178,7 @@ class Game:
 		for p in range(8):
 			self.recompute_totals(p)
 
-	def income_upkeep(self, p):
+	async def income_upkeep(self, p):
 		"""FUN_2e41_0186."""
 		s = self.s
 		self.recompute_totals(p)
@@ -188,7 +188,7 @@ class Game:
 			g = 0
 		s.players[p].gold = g
 		if s.human[p] and g < 1:
-			self.ui.message("Your treasuries are exhausted!")
+			await self.ui.message("Your treasuries are exhausted!")
 
 	def build_time(self, c, t, p, enhance=True):
 		tm = c.time[t]
@@ -308,7 +308,7 @@ class Game:
 				return 1, "%s - Produced!" % self.army_name(a)
 		return 2, "%s: City full. No room to produce." % c.name
 
-	def transit_arrivals(self, p, human):
+	async def transit_arrivals(self, p, human):
 		"""FUN_277d_0286: vectored units travel for two turn starts."""
 		s = self.s
 		for a in list(s.live_armies()):
@@ -333,14 +333,14 @@ class Game:
 							break
 				if placed:
 					if human:
-						self.ui.message("%s reaches %s" % (self.army_name(a), city.name))
+						await self.ui.message("%s reaches %s" % (self.army_name(a), city.name))
 				else:
 					s.free_army(a)
 
-	def production_phase_human(self, p):
+	async def production_phase_human(self, p):
 		"""FUN_2f0e_091a / FUN_2f0e_095c: produce units, ask whether to keep producing."""
 		s = self.s
-		self.transit_arrivals(p, True)
+		await self.transit_arrivals(p, True)
 		i = 0
 		auto = False
 		while i < 80:
@@ -357,10 +357,10 @@ class Game:
 						keep_vec = c.vector
 						self._restart(c, keep_vec)
 					continue
-				ans = self.ui.production_report(msg, c)
+				ans = await self.ui.production_report(msg, c)
 				if ans == 'yes':
 					if s.players[p].gold < c.cost[c.prod]:
-						self.ui.message("You do not have enough gold!")
+						await self.ui.message("You do not have enough gold!")
 					else:
 						self._restart(c, c.vector)
 				elif ans == 'end':
@@ -371,7 +371,7 @@ class Game:
 					c.vector = 0
 			elif code == 2:
 				if not auto:
-					self.ui.message(msg)
+					await self.ui.message(msg)
 				if "City full" in msg and self._last_report_city is not None:
 					self._last_report_city.vector = 0
 			if code == 1:
@@ -603,7 +603,7 @@ class Game:
 				if s.data.terrain_class[w & 0x7f] == TOWER and (not (w & M_ARMY) or ((w >> 7) & 0xf) == p):
 					s.set_tindex(nx, ny, 2 + p)
 
-	def step(self, d):
+	async def step(self, d):
 		"""FUN_1cdf_02d2: move the selection one tile. Returns True if it moved."""
 		s = self.s
 		if s.cur_army is None:
@@ -648,14 +648,14 @@ class Game:
 		s.map[ny * MAP_W + nx] |= M_ARMY
 		if s.count_at(ox, oy) == 0:
 			s.map[oy * MAP_W + ox] &= ~M_ARMY & 0xffff
-		self.ui.army_moved(self, movers, ox, oy, nx, ny)
+		await self.ui.army_moved(self, movers, ox, oy, nx, ny)
 		left = s.group_moves if s.group_mode else cur.moves
 		if left < 1:
 			self.mark_done()
 			self.deselect()
 		return True
 
-	def move_to(self, tx, ty):
+	async def move_to(self, tx, ty):
 		"""FUN_1cdf_0000: walk the selection toward a clicked tile."""
 		s = self.s
 		if s.cur_army is None or not s.on_map(tx, ty):
@@ -675,7 +675,7 @@ class Game:
 		for i, d in enumerate(path):
 			if i == 50:
 				break
-			if not self.step(d):
+			if not await self.step(d):
 				break
 			n += 1
 		return n
@@ -698,7 +698,7 @@ class Game:
 			return True
 		return False
 
-	def attack(self, tx, ty, d=None):
+	async def attack(self, tx, ty, d=None):
 		"""FUN_2289_0004: human attack toward a clicked tile. Returns a Battle or None."""
 		s = self.s
 		if s.cur_army is None:
@@ -726,27 +726,27 @@ class Game:
 			return None
 		own = (w >> 7) & 0xf
 		if cls == CITY and own == NEUTRAL:
-			return self.neutral_assault(tx, ty, human=True)
+			return await self.neutral_assault(tx, ty, human=True)
 		if ((w & M_ARMY) and own != p) or (cls == CITY and own != p and not (w & M_ARMY)):
 			self.attack_move(tx, ty)
 			b = self.battle_setup(tx, ty)
 			self.battle_resolve(b)
-			self.ui.battle(self, b)
+			await self.ui.battle(self, b)
 			s.rebuild_army_flags()
 			if b.result == 1:
 				if b.fled:
-					self.ui.message("The garrison has fled before you!")
+					await self.ui.message("The garrison has fled before you!")
 				elif s.cur_hero is not None:
-					self.ui.message("%s has won the battle!" % s.hero_name(s.armies[s.cur_hero]))
+					await self.ui.message("%s has won the battle!" % s.hero_name(s.armies[s.cur_hero]))
 				else:
-					self.ui.message("You are victorious!")
+					await self.ui.message("You are victorious!")
 			else:
-				self.ui.message("You have been defeated!")
-			r = self.battle_aftermath(b)
+				await self.ui.message("You have been defeated!")
+			r = await self.battle_aftermath(b)
 			if b.result == 1:
 				s.map[ty * MAP_W + tx] |= M_ARMY
 			if r == 0x21 and s.human[p]:
-				self.ui.city_production(self, b.city, captured=True)
+				await self.ui.city_production(self, b.city, captured=True)
 			return b
 		return None
 
@@ -909,7 +909,7 @@ class Game:
 			it.loc = 0
 			it.x, it.y = x, y
 
-	def battle_aftermath(self, b):
+	async def battle_aftermath(self, b):
 		"""FUN_2289_09c0. Returns 0x21 when a city was captured."""
 		s = self.s
 		p = b.attacker
@@ -941,11 +941,11 @@ class Game:
 		if b.cls == TOWER:
 			s.set_tindex(tx, ty, p + 2)
 		if b.cls == CITY and b.city is not None:
-			self.capture_city(b.city, p, b)
+			await self.capture_city(b.city, p, b)
 			return 0x21
 		return 1
 
-	def capture_city(self, c, p, b=None):
+	async def capture_city(self, c, p, b=None):
 		"""City conquest part of FUN_2289_09c0."""
 		s = self.s
 		L = c.owner
@@ -959,7 +959,7 @@ class Game:
 			if pv < 0:
 				pv = 0
 			if s.human[p] and pv > 0:
-				self.ui.message("Your armies pillage %d gp!" % pv)
+				await self.ui.message("Your armies pillage %d gp!" % pv)
 			s.add_gold(p, pv)
 			s.add_gold(L, -2 * pv)
 			if b is not None:
@@ -989,7 +989,7 @@ class Game:
 		if b is not None:
 			b.captured = True
 
-	def neutral_assault(self, tx, ty, human=True, attackers=None):
+	async def neutral_assault(self, tx, ty, human=True, attackers=None):
 		"""FUN_2491_000a / FUN_2491_0341: one roll against the city defence."""
 		s = self.s
 		p = s.current
@@ -1004,7 +1004,7 @@ class Game:
 			b.result = 0
 			b.alive_a = [0] * len(b.attackers)
 			if human:
-				self.ui.battle(self, b)
+				await self.ui.battle(self, b)
 			for u in b.attackers:
 				if u.type == HERO:
 					self.hero_death(u, tx, ty)
@@ -1013,12 +1013,12 @@ class Game:
 				self.deselect()
 			s.rebuild_army_flags()
 			if human:
-				self.ui.message("You have been defeated!")
+				await self.ui.message("You have been defeated!")
 			return b
 		b.result = 1
 		b.captured = True
 		if human:
-			self.ui.battle(self, b)
+			await self.ui.battle(self, b)
 		city.owner = p
 		s.income[p] += city.income
 		s.ncities[p] += 1
@@ -1026,15 +1026,15 @@ class Game:
 		s.map[ty * MAP_W + tx] |= M_ARMY
 		s.rebuild_army_flags()
 		if human:
-			self.ui.message("You are victorious!")
+			await self.ui.message("You are victorious!")
 			if s.human[p]:
-				self.ui.city_production(self, city, captured=True)
+				await self.ui.city_production(self, city, captured=True)
 		return b
 
 	# ==================================================================
 	# city orders: build, raze, disband
 	# ==================================================================
-	def build(self):
+	async def build(self):
 		"""FUN_2c41_0002 / 0144: tower on plains, or improve city defences."""
 		s = self.s
 		if s.cur_army is None:
@@ -1047,35 +1047,35 @@ class Game:
 			if c is None or c.owner != p:
 				return
 			if c.defence > 9:
-				self.ui.message("Your defences are already legendary!")
+				await self.ui.message("Your defences are already legendary!")
 				return
 			cost = self.data.def_cost[c.defence + 1]
-			ans = self.ui.ask(["Improve City Defences?", "Current Defences: %d" % c.defence,
+			ans = await self.ui.ask(["Improve City Defences?", "Current Defences: %d" % c.defence,
 				"Improvement cost %d gp" % cost, "You have %d gp" % s.players[p].gold], [" Yes ", " No "])
 			if ans != 0:
 				return
 			if s.players[p].gold < cost:
-				self.ui.message("You do not have sufficient gold!")
+				await self.ui.message("You do not have sufficient gold!")
 				return
 			c.defence += 1
 			s.add_gold(p, -cost)
-			self.ui.message("You have improved your defences!")
+			await self.ui.message("You have improved your defences!")
 		elif cls == PLAIN:
 			cost = 100
-			ans = self.ui.ask(["Build a Tower?", "Cost: %d" % cost, "You have %d gp" % s.players[p].gold],
+			ans = await self.ui.ask(["Build a Tower?", "Cost: %d" % cost, "You have %d gp" % s.players[p].gold],
 				[" Yes ", " No "])
 			if ans != 0:
 				return
 			if s.players[p].gold < cost:
-				self.ui.message("You do not have sufficient gold!")
+				await self.ui.message("You do not have sufficient gold!")
 				return
 			s.set_tindex(a.x, a.y, p + 2)
 			s.add_gold(p, -cost)
-			self.ui.message("You have built a tower!")
+			await self.ui.message("You have built a tower!")
 		else:
-			self.ui.message("Towers must be built on plains!")
+			await self.ui.message("Towers must be built on plains!")
 
-	def raze(self):
+	async def raze(self):
 		"""FUN_3043_0000 / 009a / 01d8."""
 		s = self.s
 		if s.cur_army is None:
@@ -1084,22 +1084,22 @@ class Game:
 		a = s.armies[s.cur_army]
 		cls = s.tclass(a.x, a.y)
 		if cls not in (CITY, TOWER) or s.towner(a.x, a.y) != p:
-			self.ui.message("You can only raze cities and towers")
+			await self.ui.message("You can only raze cities and towers")
 			return
 		if cls == CITY:
 			c = s.city_at(a.x, a.y)
 			if c is None or c.owner != p:
-				self.ui.message("You can only raze cities and towers")
+				await self.ui.message("You can only raze cities and towers")
 				return
-		if self.ui.ask(["Raze this %s?" % ("city" if cls == CITY else "tower")], [" Raze it! ", " Cancel "]) != 0:
+		if await self.ui.ask(["Raze this %s?" % ("city" if cls == CITY else "tower")], [" Raze it! ", " Cancel "]) != 0:
 			return
 		if cls == TOWER:
 			s.set_tindex(a.x, a.y, 12)
-			self.ui.message("The tower is destroyed!")
+			await self.ui.message("The tower is destroyed!")
 			return
-		self.raze_city(c, p, show=True)
+		await self.raze_city(c, p, show=True)
 
-	def raze_city(self, c, p, show=False):
+	async def raze_city(self, c, p, show=False):
 		s = self.s
 		s.income[p] -= c.income
 		s.ncities[p] -= 1
@@ -1117,10 +1117,10 @@ class Game:
 		for i in range(8):
 			s.hatred[i][p] += 1
 		if show:
-			self.ui.picture('raze', ["Your troops ravage %s!" % c.name])
-			self.ui.message("%s is in ruins!" % c.name)
+			await self.ui.picture('raze', ["Your troops ravage %s!" % c.name])
+			await self.ui.message("%s is in ruins!" % c.name)
 
-	def disband(self):
+	async def disband(self):
 		"""FUN_2b32_0812 / 08a8."""
 		s = self.s
 		sel = self.selected()
@@ -1128,10 +1128,10 @@ class Game:
 			return
 		non_heroes = [a for a in sel if a.type != HERO]
 		if not non_heroes:
-			self.ui.message("You cannot disband heroes!")
+			await self.ui.message("You cannot disband heroes!")
 			return
 		q = "Disband these armies?" if len(sel) > 1 else "Disband this army?"
-		if self.ui.ask([q], [" Yes ", " No "]) != 0:
+		if await self.ui.ask([q], [" Yes ", " No "]) != 0:
 			return
 		for a in non_heroes:
 			s.free_army(a)
@@ -1155,7 +1155,7 @@ class Game:
 		i = max(0, min(62, i))
 		return self.data.hero_names[i] + self.data.hero_suffixes[s.suffix]
 
-	def hero_event(self, p):
+	async def hero_event(self, p):
 		"""FUN_2cad_0006: hero emergence (turn 1) or offer. Returns 1 if an event happened."""
 		s = self.s
 		rng = s.rng
@@ -1210,21 +1210,21 @@ class Game:
 			return 0
 		if s.human[p]:
 			if s.turn == 1:
-				self.ui.message("In %s, a hero emerges!" % city.name)
-				name = self.ui.name_hero(self.random_hero_name())
-				self.create_hero(p, city, name, 0, had)
+				await self.ui.message("In %s, a hero emerges!" % city.name)
+				name = await self.ui.name_hero(self.random_hero_name())
+				await self.create_hero(p, city, name, 0, had)
 			else:
-				if self.ui.hero_offer(city.name, price, s.players[p].gold):
-					name = self.ui.name_hero(self.random_hero_name())
-					self.create_hero(p, city, name, price, had)
+				if await self.ui.hero_offer(city.name, price, s.players[p].gold):
+					name = await self.ui.name_hero(self.random_hero_name())
+					await self.create_hero(p, city, name, price, had)
 		else:
 			if s.turn == 1 or price + 300 < s.players[p].gold:
-				h = self.create_hero(p, city, self.random_hero_name(), price, had)
+				h = await self.create_hero(p, city, self.random_hero_name(), price, had)
 				if h is not None and self.ai is not None:
 					self.ai.new_hero(h)
 		return 1
 
-	def create_hero(self, p, city, name, price, had):
+	async def create_hero(self, p, city, name, price, had):
 		"""FUN_2cad_0438 (+ FUN_2cad_030e payment and allies)."""
 		s = self.s
 		rng = s.rng
@@ -1237,7 +1237,7 @@ class Game:
 			return None
 		if name.strip().upper() == "SUPERVISOR":
 			s.supervisor = 1
-			self.ui.message("Supervisor Mode is on!")
+			await self.ui.message("Supervisor Mode is on!")
 		order = range(4) if (s.human[p] or s.turn == 1) else range(3, -1, -1)
 		pos = None
 		for k in order:
@@ -1270,7 +1270,7 @@ class Game:
 				cnt = self.data.ally_count[min(6, rng.dice(1, 7, -1))]
 				if t <= 4:
 					if s.human[p]:
-						self.ui.message("And the hero brings %d allies!" % cnt)
+						await self.ui.message("And the hero brings %d allies!" % cnt)
 					for _ in range(cnt):
 						self.place_ally(t, a.x, a.y)
 		return a
@@ -1334,14 +1334,14 @@ class Game:
 				for m in self.selected():
 					m.moves = max(0, m.moves - n)
 
-	def _list_ground(self, x, y):
+	async def _list_ground(self, x, y):
 		its = s_items = self.s.items_on_ground(x, y)
 		if not its:
-			self.ui.message("You have found nothing!")
+			await self.ui.message("You have found nothing!")
 		for it in s_items:
-			self.ui.message("You have found: %s" % it.name)
+			await self.ui.message("You have found: %s" % it.name)
 
-	def search(self):
+	async def search(self):
 		"""FUN_307e_000c."""
 		s = self.s
 		if s.cur_army is None:
@@ -1360,23 +1360,23 @@ class Game:
 		explored = s.tile(x, y) & M_EXPLORED
 		if H is None or explored:
 			if cls == RUINS and site.type == 3:
-				self.temple(site.index)
+				await self.temple(site.index)
 			else:
-				self._list_ground(x, y)
+				await self._list_ground(x, y)
 				self.mp_deduct(0, 4)
 			return 1
 		if cls != RUINS:
-			self._list_ground(x, y)
+			await self._list_ground(x, y)
 			self.mp_deduct(1, 4)
 			return 1
 		if site.type == 1:
-			self.library()
+			await self.library()
 		elif site.type == 2:
-			self.sage(site.index)
+			await self.sage(site.index)
 		elif site.type == 3:
-			self.temple(site.index)
+			await self.temple(site.index)
 		else:
-			self.search_ruin(site, x, y)
+			await self.search_ruin(site, x, y)
 		return 1
 
 	def ruin_fight_lost(self, site, H):
@@ -1387,7 +1387,7 @@ class Game:
 		T = (H.strength - self.data.monster_strength[site.monster] + self.bat_bonus(H)) * 5 + n * 3 + 90
 		return roll > T
 
-	def search_ruin(self, site, x, y):
+	async def search_ruin(self, site, x, y):
 		"""FUN_307e_038b."""
 		s = self.s
 		d = self.data
@@ -1395,40 +1395,40 @@ class Game:
 		p = s.current
 		self.mp_deduct(1, 20)
 		hname = s.hero_name(H)
-		self.ui.play_sound('dramatic')
+		await self.ui.play_sound('dramatic')
 		if site.type != 8:
 			if site.monster == 0:
-				self.ui.message("It appears to be uninhabited!")
+				await self.ui.message("It appears to be uninhabited!")
 			else:
-				self.ui.message("%s encounters a %s!" % (hname, d.monster_names[site.monster]))
+				await self.ui.message("%s encounters a %s!" % (hname, d.monster_names[site.monster]))
 				if self.ruin_fight_lost(site, H):
 					self.hero_death(H, H.x, H.y)
 					s.free_army(H)
 					s.cur_hero = None
 					s.rebuild_army_flags()
-					self.ui.message("...and is slain by it!")
+					await self.ui.message("...and is slain by it!")
 					return 1
-				self.ui.message("...and is victorious!")
+				await self.ui.message("...and is victorious!")
 				site.monster = 0
 		i = y * MAP_W + x
 		if site.type == 4:
 			it = s.items[site.item]
-			self.ui.message("%s has found the %s!" % (hname, it.name))
+			await self.ui.message("%s has found the %s!" % (hname, it.name))
 			s.map[i] |= M_EXPLORED
 			site.type = 0
 			it.state = 1
 			it.loc = 0
 			it.x, it.y = H.x, H.y
 		elif site.type == 5:
-			if self.ui.ask(["You have found a Holy Altar", "Will you pray at this Altar?"], [" Yes ", " No "]) == 0:
-				self.altar(H)
+			if await self.ui.ask(["You have found a Holy Altar", "Will you pray at this Altar?"], [" Yes ", " No "]) == 0:
+				await self.altar(H)
 		elif site.type == 6:
-			if self.ui.ask(["You have found a huge", "Golden Throne", "Will you sit in the throne?"],
+			if await self.ui.ask(["You have found a huge", "Golden Throne", "Will you sit in the throne?"],
 					[" Yes ", " No "]) == 0:
-				self.throne(H)
+				await self.throne(H)
 		elif site.type == 7:
 			g = s.rng.dice(3, 1000, 500)
-			self.ui.message("%s has found %d gp!" % (hname, g))
+			await self.ui.message("%s has found %d gp!" % (hname, g))
 			s.map[i] |= M_EXPLORED
 			s.add_gold(p, g)
 		elif site.type == 8:
@@ -1437,42 +1437,42 @@ class Game:
 			n = 2 if r == 3 else 1
 			mname = d.monster_names[site.monster]
 			if n == 1:
-				self.ui.message("A %s offers to join %s" % (mname, hname))
+				await self.ui.message("A %s offers to join %s" % (mname, hname))
 			else:
-				self.ui.message("%d %ss offer to join %s" % (n, mname, hname))
+				await self.ui.message("%d %ss offer to join %s" % (n, mname, hname))
 			for _ in range(n):
 				if 5 <= site.monster <= 9:
 					self.place_ally(site.monster - 5, x, y)
 		return 1
 
-	def altar(self, H):
+	async def altar(self, H):
 		"""FUN_307e_0911."""
 		s = self.s
 		r = s.rng.dice(1, 2, -1)
 		if r == 1 and H.strength < 9:
 			H.strength += 1
-			self.ui.message("The Gods hear! %s's strength increases to %d!" % (s.hero_name(H), H.strength))
+			await self.ui.message("The Gods hear! %s's strength increases to %d!" % (s.hero_name(H), H.strength))
 		else:
-			self.ui.message("The Gods ignore %s!" % s.hero_name(H))
+			await self.ui.message("The Gods ignore %s!" % s.hero_name(H))
 		s.map[H.y * MAP_W + H.x] |= M_EXPLORED
 
-	def throne(self, H):
+	async def throne(self, H):
 		"""FUN_307e_09d4."""
 		s = self.s
 		roll = s.rng.dice(1, 100, 0)
 		d = 1 if roll < 80 else -1
 		if (H.strength == 9 and d == 1) or (H.strength == 0 and d == -1):
-			self.ui.message("You see a vision of yourself as Warlord of all Illuria!")
+			await self.ui.message("You see a vision of yourself as Warlord of all Illuria!")
 		else:
 			H.strength += d
-			self.ui.message("%s's strength %s to %d!" % (s.hero_name(H), "increases" if d == 1 else "decreases",
+			await self.ui.message("%s's strength %s to %d!" % (s.hero_name(H), "increases" if d == 1 else "decreases",
 				H.strength))
 		s.map[H.y * MAP_W + H.x] |= M_EXPLORED
 
-	def temple(self, idx):
+	async def temple(self, idx):
 		"""FUN_307e_0ad5."""
 		s = self.s
-		self.ui.message("You have found a temple...")
+		await self.ui.message("You have found a temple...")
 		bit = TEMPLE_BITS.get(idx)
 		count = 0
 		for a in self.selected():
@@ -1483,13 +1483,13 @@ class Game:
 			if a.strength > 9:
 				a.strength = 9
 		if count == 0:
-			self.ui.message("You have already received our blessing! Try another temple!")
+			await self.ui.message("You have already received our blessing! Try another temple!")
 		elif count == 1:
-			self.ui.message("You have been blessed!  Seek more blessings in far temples!")
+			await self.ui.message("You have been blessed!  Seek more blessings in far temples!")
 		else:
-			self.ui.message("%d Armies have been blessed!  Seek more blessings in far temples!" % count)
+			await self.ui.message("%d Armies have been blessed!  Seek more blessings in far temples!" % count)
 
-	def sage(self, idx):
+	async def sage(self, idx):
 		"""Sage / Seer: gem (once per sage per game) then a question."""
 		s = self.s
 		p = s.current
@@ -1499,27 +1499,27 @@ class Game:
 			else:
 				s.gem_oracle = 1
 			g = s.rng.dice(3, 1000, 500)
-			self.ui.message("You are greeted warmly...")
-			self.ui.message("... the Seer gives you a gem...")
-			self.ui.message("...worth %d gp" % g)
+			await self.ui.message("You are greeted warmly...")
+			await self.ui.message("... the Seer gives you a gem...")
+			await self.ui.message("...worth %d gp" % g)
 			s.add_gold(p, g)
-		ans = self.ui.ask(["A sign says", "The Great Sage", "Master of Wisdom,", "Information on:",
+		ans = await self.ui.ask(["A sign says", "The Great Sage", "Master of Wisdom,", "Information on:",
 			"Magical Items", "and Locations", "The sage welcomes you", "What do you wish to know?"],
 			["Cancel", "Items", "Locations"], 0)
 		if ans == 1:
-			i = self.ui.choose("Items", [it.name for it in s.items])
+			i = await self.ui.choose("Items", [it.name for it in s.items])
 			if i is not None:
-				self.sage_item(i)
+				await self.sage_item(i)
 		elif ans == 2:
-			i = self.ui.choose("Locations", [st.name for st in s.sites])
+			i = await self.ui.choose("Locations", [st.name for st in s.sites])
 			if i is not None:
-				self.sage_location(i)
+				await self.sage_location(i)
 
-	def sage_item(self, i):
+	async def sage_item(self, i):
 		"""FUN_307e_10c8."""
 		s = self.s
 		it = s.items[i]
-		self.ui.message("The %s can be found ..." % it.name)
+		await self.ui.message("The %s can be found ..." % it.name)
 		if it.state == 0:
 			pass                # the original never displays its message (bug)
 		elif it.state == 2:
@@ -1529,7 +1529,7 @@ class Game:
 					site = st
 					break
 			if site is not None:
-				self.ui.message("... at %s!" % site.name)
+				await self.ui.message("... at %s!" % site.name)
 		elif it.state in (1, 3):
 			if it.state == 1:
 				px, py = it.x, it.y
@@ -1545,59 +1545,59 @@ class Game:
 					bc = c
 			own = bc.owner if bc.owner < 8 else 8
 			if it.state == 1:
-				self.ui.message("... in the vicinity of the %s city of %s" % (self.data.clan_names[own], bc.name))
+				await self.ui.message("... in the vicinity of the %s city of %s" % (self.data.clan_names[own], bc.name))
 			else:
-				self.ui.message("... near %s with a hero of the %s" % (bc.name,
+				await self.ui.message("... near %s with a hero of the %s" % (bc.name,
 					self.clan_name(s.armies[it.loc].owner)))
 		else:
-			self.ui.message("What???")
+			await self.ui.message("What???")
 		self.mp_deduct(1, 4)
 
-	def sage_location(self, k):
+	async def sage_location(self, k):
 		"""FUN_307e_0fa2."""
 		s = self.s
 		st = s.sites[k]
 		if st.monster == 0:
-			self.ui.message("Nothing evil lives here!")
+			await self.ui.message("Nothing evil lives here!")
 		elif not (s.tile(st.x, st.y) & M_EXPLORED):
-			self.ui.message("It is inhabited by a %s!" % self.data.monster_names[st.monster])
+			await self.ui.message("It is inhabited by a %s!" % self.data.monster_names[st.monster])
 		else:
-			self.ui.message("It has already been explored!")
+			await self.ui.message("It has already been explored!")
 		ph = self.data.site_phrases[st.type] if 0 <= st.type < 9 else ""
 		if ph:
-			self.ui.message(ph)
+			await self.ui.message(ph)
 		if st.type == 4:
-			self.ui.message("The %s!" % s.items[st.item].name)
+			await self.ui.message("The %s!" % s.items[st.item].name)
 		self.mp_deduct(1, 4)
 
-	def library(self):
+	async def library(self):
 		"""FUN_307e_0ce0."""
 		s = self.s
 		d = self.data
 		rng = s.rng
-		self.ui.message("You enter a great Library...")
-		self.ui.message("Searching through the books, you find...")
+		await self.ui.message("You enter a great Library...")
+		await self.ui.message("Searching through the books, you find...")
 		r = rng.dice(1, 3, 0)
 		if r == 1:
-			self.ui.message(d.quotes[min(11, rng.dice(1, 12, -1))])
+			await self.ui.message(d.quotes[min(11, rng.dice(1, 12, -1))])
 		elif r == 2:
 			i = min(13, rng.dice(1, 14, -1))
 			it = s.items[i]
 			if it.state == 0:
-				self.ui.message("The %s is lost from Illuria!" % it.name)
+				await self.ui.message("The %s is lost from Illuria!" % it.name)
 			elif it.state == 1:
-				self.ui.message("The %s is lying in %s!" % (it.name, self.region_name(s.cursor_x, s.cursor_y)))
+				await self.ui.message("The %s is lying in %s!" % (it.name, self.region_name(s.cursor_x, s.cursor_y)))
 			elif it.state == 2:
-				self.ui.message("The %s is in the %s!" % (it.name, s.sites[it.loc].name))
+				await self.ui.message("The %s is in the %s!" % (it.name, s.sites[it.loc].name))
 			elif it.state == 3:
-				self.ui.message("The %s is owned by a hero!" % it.name)
+				await self.ui.message("The %s is owned by a hero!" % it.name)
 		elif r == 3:
 			k = min(39, rng.dice(1, 32, 7))
 			st = s.sites[k]
 			if st.monster == 0:
-				self.ui.message("%s is uninhabited!" % st.name)
+				await self.ui.message("%s is uninhabited!" % st.name)
 			else:
-				self.ui.message("A %s lives in %s!" % (d.monster_names[st.monster], st.name))
+				await self.ui.message("A %s lives in %s!" % (d.monster_names[st.monster], st.name))
 		self.mp_deduct(1, 4)
 
 	def take_item(self, it):
@@ -1630,7 +1630,7 @@ class Game:
 				a.flags &= ~F_DONE
 				a.moves = min(a.moves, 2) + a.maxmoves
 
-	def start_human_turn(self, p):
+	async def start_human_turn(self, p):
 		"""FUN_1a12_007e."""
 		s = self.s
 		s.current = p
@@ -1644,12 +1644,12 @@ class Game:
 			if a.owner == p:
 				a.flags &= ~(F_DONE | F_VISITED)
 		self.center_on_capital()
-		self.ui.message("%s: Click when ready!" % self.clan_name(p))
+		await self.ui.message("%s: Click when ready!" % self.clan_name(p))
 		if s.extra_tough and not getattr(self, '_tough_warned', False):
 			self._tough_warned = True
-			self.ui.message("Warning: Computer is in extra tough mode!")
-		self.income_upkeep(p)
-		self.hero_event(p)
+			await self.ui.message("Warning: Computer is in extra tough mode!")
+		await self.income_upkeep(p)
+		await self.hero_event(p)
 		s.players[p].report_allowed = 1
 
 	def center_on_capital(self):
@@ -1665,20 +1665,20 @@ class Game:
 		s.view_x, s.view_y = vx, vy
 		s.view_x2, s.view_y2 = vx + 8, vy + 7
 
-	def human_turn_production(self, p):
+	async def human_turn_production(self, p):
 		"""The production report / turn-1 capital dialog at the start of a human turn."""
 		s = self.s
 		pl = s.players[p]
 		if pl.report_allowed and not pl.report_done and not s.war_over and s.turn > 1:
-			self.production_phase_human(p)
+			await self.production_phase_human(p)
 			pl.report_done = 1
 		if s.turn == 1 and not pl.report_done:
 			cap = self.capital_city(p)
 			if cap is not None:
-				self.ui.city_production(self, cap)
+				await self.ui.city_production(self, cap)
 			pl.report_done = 1
 
-	def end_of_round(self):
+	async def end_of_round(self):
 		"""FUN_1b90_0116."""
 		s = self.s
 		s.recount_cities()
@@ -1690,32 +1690,32 @@ class Game:
 							self.hero_death(a, a.x, a.y)
 						s.free_army(a)
 				if s.human[p]:
-					self.ui.message("Wretched  %s!  For you, the war is over!" % self.clan_name(p))
+					await self.ui.message("Wretched  %s!  For you, the war is over!" % self.clan_name(p))
 				else:
-					self.ui.message("%s are no longer a threat!" % self.clan_name(p))
+					await self.ui.message("%s are no longer a threat!" % self.clan_name(p))
 				s.alive[p] = 0
 				s.players[p].gold = 0
 		alive = [p for p in range(8) if s.alive[p]]
 		if not alive:
-			self.ui.game_over(self, ["As no players are involved in the..",
+			await self.ui.game_over(self, ["As no players are involved in the..",
 				"game I bid you a fond 'FAREWELL' ...", "Hit any key to return to DOS."])
 			self.quit = True
 			return
 		humans_alive = [p for p in alive if s.human[p]]
 		if not humans_alive and any(s.human) and not s.war_over:
 			s.war_over = 1
-			self.ui.message("As no further human resistance is ...")
-			self.ui.message("possible the battle for Illuria ...")
-			self.ui.message("will continue without you ...")
+			await self.ui.message("As no further human resistance is ...")
+			await self.ui.message("possible the battle for Illuria ...")
+			await self.ui.message("will continue without you ...")
 		ai_alive = [p for p in alive if not s.human[p]]
 		if not s.war_over and len(humans_alive) == 1 and not ai_alive and len(alive) == 1:
 			s.war_over = 1
 			w = humans_alive[0]
-			self.ui.play_sound('horn')
-			self.ui.game_over(self, ["Player %d, %s: You have won!" % (w + 1, self.clan_name(w)),
+			await self.ui.play_sound('horn')
+			await self.ui.game_over(self, ["Player %d, %s: You have won!" % (w + 1, self.clan_name(w)),
 				"You now rule all of Illuria ...", "You may now inspect your domain."])
 
-	def surrender_check(self):
+	async def surrender_check(self):
 		"""FUN_1b90_0434 (run when a human presses End Turn). Returns 1 if the turn continues."""
 		s = self.s
 		if s.surrender_offered:
@@ -1728,9 +1728,9 @@ class Game:
 		m = max([s.ncities[p] for p in range(8) if s.alive[p] and not s.human[p]] or [0])
 		if h > 40 and len(humans) == 1 and h > m + 15:
 			s.surrender_offered = 1
-			self.ui.picture('beg', ["Your seneschal reports strangers at the gate!",
+			await self.ui.picture('beg', ["Your seneschal reports strangers at the gate!",
 				"Crawling towards you they humbly present a scroll"])
-			ans = self.ui.ask(["MIGHTY WARLORD!!", "The fickle tides of war have turned",
+			ans = await self.ui.ask(["MIGHTY WARLORD!!", "The fickle tides of war have turned",
 				"your way and the Gods favour you!", "The few remaining leaders send",
 				"ambassadors to offer you all their", "lands if you will but spare their",
 				"insignificant, wretched lives!"],
@@ -1739,17 +1739,17 @@ class Game:
 				s.war_over = 1
 				for p in range(8):
 					s.human[p] = 1
-				self.ui.game_over(self, ["Under your enlightened rule ...", "Illuria has entered a new golden age ...",
+				await self.ui.game_over(self, ["Under your enlightened rule ...", "Illuria has entered a new golden age ...",
 					"You may now inspect your domain."])
 			else:
-				self.no_quarter()
+				await self.no_quarter()
 			return 1
 		return 0
 
-	def no_quarter(self):
+	async def no_quarter(self):
 		"""FUN_1b90_0730."""
 		s = self.s
-		self.ui.picture('head', ["No Quarter !!!"])
+		await self.ui.picture('head', ["No Quarter !!!"])
 		for i in range(8):
 			if not s.alive[i]:
 				continue
@@ -1762,22 +1762,22 @@ class Game:
 				else:
 					s.hatred[i][j] = 0
 
-	def ai_turn(self, p):
+	async def ai_turn(self, p):
 		"""FUN_274c_0000."""
 		s = self.s
-		self.ui.ai_turn_start(self, p)
+		await self.ui.ai_turn_start(self, p)
 		s.current = p
 		s.rebuild_army_flags()
 		if s.ncities[p] > 0:
 			self.reset_moves(p)
-			self.income_upkeep(p)
-			self.hero_event(p)
+			await self.income_upkeep(p)
+			await self.hero_event(p)
 			if self.ai is not None:
-				self.ai.production(p)
-				self.ai.main(p)
+				await self.ai.production(p)
+				await self.ai.main(p)
 		self.ui.ai_turn_end(self, p)
 
-	def run(self, resume_player=None):
+	async def run(self, resume_player=None):
 		"""FUN_1312_000e: the main round loop."""
 		s = self.s
 		first = True
@@ -1794,20 +1794,20 @@ class Game:
 					if self.quit:
 						return
 					if s.alive[p] and not s.human[p]:
-						self.ai_turn(p)
+						await self.ai_turn(p)
 			for p in range(start, 8):
 				if self.quit:
 					return
 				if s.human[p] and s.alive[p]:
 					if not (first and resume_player is not None and p == resume_player):
-						self.start_human_turn(p)
+						await self.start_human_turn(p)
 					s.current = p
-					r = self.ui.human_turn(self, p)
+					r = await self.ui.human_turn(self, p)
 					if r == 'quit':
 						self.quit = True
 						return
 			first = False
-			self.end_of_round()
+			await self.end_of_round()
 			s.turn += 1
 			if not any(s.alive[p] and s.human[p] for p in range(8)) and not any(s.human):
 				pass

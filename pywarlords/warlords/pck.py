@@ -8,10 +8,9 @@ Format (reverse engineered by Ales Teska):
                               length = following byte + 1
   The decompressed data is 4 EGA/VGA bit planes stored one after another,
   each plane (width/8)*height bytes, MSB = leftmost pixel.
-The result is an array of 4-bit colour indices (height x width).
+The result is an IndexImage of 4-bit colour indices (one byte per pixel, row major).
 """
 import struct
-import numpy as np
 
 
 def decompress(data):
@@ -43,6 +42,41 @@ def decompress(data):
 	return bytes(dst)
 
 
+class IndexImage:
+	"""A palette index image: width, height and one byte per pixel (row major)."""
+
+	__slots__ = ('width', 'height', 'data')
+
+	def __init__(self, width, height, data):
+		self.width = width
+		self.height = height
+		self.data = bytes(data)
+
+	@property
+	def shape(self):
+		return (self.height, self.width)
+
+	def pixel(self, x, y):
+		return self.data[y * self.width + x]
+
+	def row(self, y, x0=0, x1=None):
+		o = y * self.width
+		return self.data[o + x0:o + (self.width if x1 is None else x1)]
+
+	def crop(self, x0, y0, x1, y1):
+		x1 = min(x1, self.width)
+		y1 = min(y1, self.height)
+		return IndexImage(x1 - x0, y1 - y0, b''.join(self.row(y, x0, x1) for y in range(y0, y1)))
+
+	def map(self, table):
+		"""Translate every pixel through a 256 byte table."""
+		return IndexImage(self.width, self.height, self.data.translate(bytes(table)))
+
+
+# _EXPAND[b] = the 8 bits of b (MSB first) as an int whose bytes are 0/1
+_EXPAND = [int.from_bytes(bytes((b >> (7 - i)) & 1 for i in range(8)), 'big') for b in range(256)]
+
+
 def planar_to_indices(raw, width, height):
 	"""Convert 4 sequential bit planes into an index image.
 
@@ -54,13 +88,21 @@ def planar_to_indices(raw, width, height):
 	plane = (width // 8) * height
 	stride = ((width + 15) // 16) * 2
 	rows = plane // stride
-	arr = np.frombuffer(raw, dtype=np.uint8)
-	if arr.size < plane * 4:
-		arr = np.concatenate([arr, np.zeros(plane * 4 - arr.size, np.uint8)])
-	planes = np.stack([arr[k * plane:k * plane + rows * stride].reshape(rows, stride) for k in range(4)])
-	bits = np.unpackbits(planes, axis=2)  # 4 x rows x stride*8, MSB first
-	idx = bits[0] | (bits[1] << 1) | (bits[2] << 2) | (bits[3] << 3)
-	return idx[:, :width].astype(np.uint8)
+	raw = bytes(raw)
+	if len(raw) < plane * 4:
+		raw = raw + bytes(plane * 4 - len(raw))
+	E = _EXPAND
+	out = bytearray()
+	for y in range(rows):
+		o = y * stride
+		p0 = raw[o:o + stride]
+		p1 = raw[plane + o:plane + o + stride]
+		p2 = raw[2 * plane + o:2 * plane + o + stride]
+		p3 = raw[3 * plane + o:3 * plane + o + stride]
+		line = b''.join((E[a] | (E[b] << 1) | (E[c] << 2) | (E[d] << 3)).to_bytes(8, 'big')
+			for a, b, c, d in zip(p0, p1, p2, p3))
+		out += line[:width]
+	return IndexImage(width, rows, out)
 
 
 def load_pck(path):

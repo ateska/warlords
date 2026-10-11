@@ -19,17 +19,33 @@ the screens were transcribed from a decompilation of the original `WARLORDS.EXE`
   and save/load.
 - **Sound:** the original PC speaker samples, played at the original rates.
 - **Platforms:** Windows, macOS and Linux.
+- **Browser:** the same code also runs in a web browser through [pygbag](https://pygame-web.github.io)
+  (CPython and pygame compiled to WebAssembly). The page asks for your game files once and keeps them in
+  the browser; nothing is uploaded.
 
 No game assets are included. Graphics, the map, unit and city tables, names, palettes and AI tables are
 read at start-up from your own copy of the game (see [Getting the Game Assets](#getting-the-game-assets-legally)).
 
+On the desktop:
+
 ```
-pip install pygame numpy
+pip install pygame
 cd pywarlords
 python3 -m warlords --data /path/to/your/warlords
 ```
 
-See [`pywarlords/README.md`](./pywarlords/README.md) for options and controls, and
+In a browser (build once, then serve the page; the local server hands the page your game folder,
+found the same way as above, so nothing has to be chosen in the browser):
+
+```
+pip install pygbag
+cd pywarlords
+python3 web/build.py
+python3 web/serve.py --data /path/to/your/warlords      # open http://127.0.0.1:8001/
+```
+
+See [`pywarlords/README.md`](./pywarlords/README.md) for options and controls,
+[`pywarlords/web/README.md`](./pywarlords/web/README.md) for the browser version, and
 [`reverse/`](./reverse) for the reverse-engineering notes and rule specifications the code is based on.
 
 Bug reports are welcome, especially from people who remember how the original behaved: AI moves that look
@@ -88,14 +104,14 @@ Warlords was known for:
 
 ## What's in This Repository
 
-- ✅ [pywarlords](./pywarlords) — the playable Python reimplementation of the game
+- ✅ [pywarlords](./pywarlords) — the playable Python reimplementation of the game, on the desktop and [in the browser](./pywarlords/web)
 - ✅ [Reverse engineering notes](./reverse) — memory layout, data tables and rule specifications (combat, movement, economy, exploration, AI) with addresses into `WARLORDS.EXE`, plus the Ghidra scripts and tools used
 - ✅ [Decoder](./pck) for `.PCK` files and sprite/image formats
 - ✅ [Decoder](./map) for `ILLURIA.MAP` file (the game map) including mapping to graphic tiles from `PICTS/SCENERY.PCK`
 - ✅ [Decoder](./fant) for the `FANT` font
 - ✅ [Decoder](./exe) for `WARLORDS.EXE` to extract various resources (cities, ruins)
 - ✅ [Slicer](./armies) for `PICTS/ARMIES.PCK` to extract individual army unit sprites
-- ✅ [PoC](https://ateska.github.io/warlords/) of a Go/WebAssembly application that uses the decoded assets
+- ✅ [PoC](https://ateska.github.io/warlords/) of a Go/WebAssembly application that uses the decoded assets (2025, superseded by the browser build of pywarlords)
 - [ ] Experimental visualizations and upscalers
 
 All code is open-source, educational, and designed to assist others in understanding or restoring Warlords content.
@@ -108,6 +124,7 @@ Contributions welcome!
 - ✅ Extract original VGA palettes and apply them correctly
 - ✅ Annotate EXE behavior and sprite routines
 - ✅ Rebuild Warlords mechanics with modern tools
+- ✅ Play it in a web browser, with the player's own game files
 - [ ] Polish the Python port until it is indistinguishable from the original
 - [ ] (Maybe) Create a lightweight launcher or modding tool
 

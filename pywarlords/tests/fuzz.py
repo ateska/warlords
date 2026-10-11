@@ -4,7 +4,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 DATA = os.environ.get('WARLORDS_DATA') or os.path.join(ROOT, '..', 'warlords')
 OUT = os.environ.get('WARLORDS_OUT', '.')
-import os, sys, random, time, traceback
+import os, sys, random, time, traceback, asyncio
 os.environ.setdefault('SDL_VIDEODRIVER', 'dummy')
 os.environ.setdefault('SDL_AUDIODRIVER', 'dummy')
 os.environ.setdefault('WARLORDS_NOSOUND', '1')
@@ -40,7 +40,8 @@ class Fuzz:
             return [('key', pygame.K_ESCAPE, 0, '')]
         if k < 0.72:
             cmd = r.choice(self.cmds)
-            self.ui.command(cmd) if getattr(self.ui, 'game', None) and hasattr(self.ui, 'end_turn') else None
+            if getattr(self.ui, 'game', None) and hasattr(self.ui, 'end_turn'):
+                return [('callback', lambda: self.ui.command(cmd))]
             return []
         if k < 0.75:
             return [('key', pygame.K_e, pygame.KMOD_ALT, 'e')]
@@ -56,7 +57,7 @@ def main(n=4000, seed=1, quick=True):
     ui.events = fz
     t0 = time.time()
     try:
-        ui.run(quick=([1,0,0,1,0,0,0,0], [1,2,3,0,1,2,3,1]) if quick else None)
+        asyncio.run(ui.run(quick=([1,0,0,1,0,0,0,0], [1,2,3,0,1,2,3,1]) if quick else None))
     finally:
         g = ui.game
         print('events', fz.count, 'turn', g.s.turn if g else None, 'time %.1f' % (time.time()-t0))

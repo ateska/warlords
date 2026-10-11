@@ -4,7 +4,8 @@ These are the notes and specifications the Python port in [`../pywarlords`](../p
 from. They describe the original game's data structures and rules with addresses into the executable
 as evidence.
 
-* [`NOTES.md`](NOTES.md) — memory layout, address conventions, the battle loop, data tables.
+* [`NOTES.md`](NOTES.md) — memory layout, address conventions, the battle loop, data tables, PC
+  speaker sound (sample format, playback rates, which sound plays when).
 * [`specs/combat.md`](specs/combat.md) — who fights, strength modifiers, the dice loop, neutral city
   assaults, pillage and capture.
 * [`specs/movement.md`](specs/movement.md) — the army record, movement costs, groups, boarding ships,

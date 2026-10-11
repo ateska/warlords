@@ -1,8 +1,7 @@
 """Graphics loaded from the original PICTS/*.PCK files."""
-import numpy as np
 import pygame
 
-from ..pck import load_pck
+from ..pck import load_pck, IndexImage
 from ..gamedata import find_file
 
 NATIVE_W, NATIVE_H = 640, 200
@@ -12,7 +11,7 @@ class Font:
 	"""A bitmap font: glyph masks for ASCII 32..127."""
 
 	def __init__(self, masks, widths, height, spacing=0):
-		self.masks = masks      # dict ch -> np.bool_ array (h, w)
+		self.masks = masks      # dict ch -> IndexImage of 0/1 (1 = ink)
 		self.widths = widths
 		self.height = height
 		self.spacing = spacing
@@ -28,13 +27,7 @@ class Font:
 			m = self.masks.get(code)
 			if m is None:
 				m = self.masks.get(ord('?'))
-			h, w = m.shape
-			arr = np.zeros((w, h, 4), np.uint8)
-			arr[..., 0] = color[0]
-			arr[..., 1] = color[1]
-			arr[..., 2] = color[2]
-			arr[..., 3] = (m.T * 255).astype(np.uint8)
-			g = pygame.image.frombuffer(arr.transpose(1, 0, 2).copy().tobytes(), (w, h), 'RGBA').convert_alpha()
+			g = indexed_surface(m, [(255, 0, 255), tuple(color)] + [(0, 0, 0)] * 254, key_index=0)
 			self._cache[key] = g
 		return g
 
@@ -68,17 +61,12 @@ class Assets:
 		k = (name, pal, key)
 		s = self.surf.get(k)
 		if s is None:
-			arr = np.array(self.pal[pal], np.uint8)[self.idx[name]]
-			h, w = arr.shape[:2]
-			s = pygame.image.frombuffer(arr.tobytes(), (w, h), 'RGB').convert()
+			colors = [tuple(c) for c in self.pal[pal]]
+			colors += [(0, 0, 0)] * (256 - len(colors))
 			if key is not None:
-				s.set_colorkey(self.pal[pal][key])
-				mask = self.idx[name] == key
 				# colour 5 is also black but opaque; make the key colour unique
-				arr2 = arr.copy()
-				arr2[mask] = (255, 0, 255)
-				s = pygame.image.frombuffer(arr2.tobytes(), (w, h), 'RGB').convert()
-				s.set_colorkey((255, 0, 255))
+				colors[key] = (255, 0, 255)
+			s = indexed_surface(self.idx[name], colors, key_index=key)
 			self.surf[k] = s
 		return s
 
@@ -107,28 +95,42 @@ class Assets:
 	# ------------------------------------------------------------------
 	def _build_fonts(self):
 		f = self.idx['FANT']
+		ink = bytes(1 if i == 0 else 0 for i in range(256))
 		masks = {}
 		widths = {}
 		for code in range(32, 128):
 			k = code - 32
 			cx, cy = (k % 16) * 16, (k // 16) * 9
-			cell = f[cy:cy + 9, cx:cx + 16]
-			m = cell == 0
-			cols = np.where(m.any(axis=0))[0]
-			w = (cols[-1] + 2) if len(cols) else 6
-			masks[code] = m[:, :max(w, 1)]
+			cell = f.crop(cx, cy, cx + 16, cy + 9).map(ink)
+			cols = [x for x in range(16) if any(cell.pixel(x, y) for y in range(9))]
+			w = (cols[-1] + 2) if cols else 6
+			masks[code] = cell.crop(0, 0, max(min(w, 16), 1), 9)
 			widths[code] = w
 		widths[32] = 5
-		masks[32] = np.zeros((9, 5), bool)
+		masks[32] = IndexImage(5, 9, bytes(45))
 		self.fant = Font(masks, widths, 9)
 		g = self.idx['FONTS']
+		ink = bytes(0 if i == 1 else 1 for i in range(256))
 		masks = {}
 		widths = {}
-		band = g[48:72]           # black on white
 		for code in range(32, 128):
 			k = code - 32
-			cx, cy = (k % 32) * 8, (k // 32) * 8
-			cell = band[cy:cy + 8, cx:cx + 8]
-			masks[code] = cell != 1
+			cx, cy = (k % 32) * 8, 48 + (k // 32) * 8          # black on white band, rows 48..72
+			masks[code] = g.crop(cx, cy, cx + 8, cy + 8).map(ink)
 			widths[code] = 8
 		self.mono = Font(masks, widths, 8)
+
+
+def indexed_surface(img, colors, key_index=None):
+	"""An IndexImage as a pygame surface (8 bit palette surface, then converted)."""
+	s = pygame.image.frombuffer(img.data, (img.width, img.height), 'P')
+	s.set_palette(colors)
+	if key_index is not None:
+		s.set_colorkey(colors[key_index])
+	try:
+		s = s.convert()
+	except pygame.error:
+		pass
+	if key_index is not None:
+		s.set_colorkey(colors[key_index])
+	return s

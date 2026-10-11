@@ -15,12 +15,12 @@ Everything here is optional: without an audio device the game runs silently.
 """
 
 import os
+import sys
+from array import array
 
 try:
-	import numpy as np
 	import pygame
 except ImportError:          # pragma: no cover
-	np = None
 	pygame = None
 
 from ..gamedata import find_file
@@ -52,19 +52,30 @@ class Sound:
 				pygame.mixer.pre_init(RATE, -16, 1, 512)
 				pygame.mixer.init(RATE, -16, 1, 512)
 			freq, size, chans = pygame.mixer.get_init()
-			self.rate, self.chans = freq, chans
+			self.rate, self.size, self.chans = freq, size, chans
 			self.ok = True
 		except Exception:
 			self.ok = False
 
 	# ------------------------------------------------------------------
 	def _make(self, mono):
-		"""float array -1..1 at self.rate -> pygame Sound."""
-		a = np.clip(mono * VOLUME, -1, 1)
-		a = (a * 32767).astype(np.int16)
+		"""list of floats -1..1 at self.rate -> pygame Sound in the mixer's sample format."""
+		v = VOLUME
+		vals = [max(-1.0, min(1.0, x * v)) for x in mono]
 		if self.chans > 1:
-			a = np.repeat(a[:, None], self.chans, axis=1)
-		return pygame.sndarray.make_sound(np.ascontiguousarray(a))
+			vals = [x for x in vals for _ in range(self.chans)]
+		size = self.size
+		if size == -16:
+			buf = array('h', [int(x * 32767) for x in vals])
+		elif size == 16:
+			buf = array('H', [int(x * 32767) + 32768 for x in vals])
+		elif size == 32:
+			buf = array('f', vals)
+		elif size == -8:
+			buf = array('b', [int(x * 127) for x in vals])
+		else:
+			buf = array('B', [int(x * 127) + 128 for x in vals])
+		return pygame.mixer.Sound(buffer=buf.tobytes())
 
 	def _load(self, name):
 		if name in self.cache:
@@ -73,28 +84,34 @@ class Sound:
 		try:
 			if name == 'beep':
 				n = int(self.rate * 2 / 18.2)
-				t = np.arange(n) / self.rate
-				wave = np.where((t * 220.0) % 1.0 < 0.5, 0.35, -0.35)
-				snd = self._make(wave)
+				period = self.rate / 220.0
+				snd = self._make([0.35 if (i % period) < period / 2 else -0.35 for i in range(n)])
 			else:
 				fname, src_rate = SAMPLES[name]
 				path = find_file(self.game_dir, fname)
 				if path:
-					raw = np.frombuffer(open(path, 'rb').read(), np.uint8)[48:]
-					if len(raw) and raw[-1] == 0x1a:
+					raw = open(path, 'rb').read()[48:]
+					if raw and raw[-1] == 0x1a:
 						raw = raw[:-1]
 					# drop the silent tail so a synchronous play ends with the sound
-					loud = np.nonzero(np.abs(raw.astype(np.int16) - 35) > 3)[0]
-					if len(loud):
-						raw = raw[:min(len(raw), loud[-1] + src_rate // 20)]
-					x = (raw.astype(np.float32) - 35.0) / 36.0
-					x -= x.mean()
-					# resample (linear) and a gentle low pass, like the speaker cone
+					last = max((i for i, b in enumerate(raw) if abs(b - 35) > 3), default=len(raw) - 1)
+					raw = raw[:min(len(raw), last + src_rate // 20)]
+					mean = sum(raw) / float(len(raw))
+					x = [(b - mean) / 36.0 for b in raw]
+					# linear resampling and a 3 tap box filter (the speaker cone was no better)
 					n = int(len(x) * self.rate / src_rate)
-					y = np.interp(np.arange(n) * (src_rate / self.rate), np.arange(len(x)), x)
-					k = np.ones(3, np.float32) / 3
-					y = np.convolve(y, k, mode='same')
-					snd = self._make(y * 1.6)
+					step = src_rate / float(self.rate)
+					last_i = len(x) - 1
+					y = []
+					for i in range(n):
+						p = i * step
+						j = int(p)
+						f = p - j
+						a = x[j]
+						b = x[j + 1] if j < last_i else a
+						y.append(a + (b - a) * f)
+					z = [(y[max(i - 1, 0)] + y[i] + y[min(i + 1, n - 1)]) * (1.6 / 3) for i in range(n)]
+					snd = self._make(z)
 		except Exception:
 			snd = None
 		self.cache[name] = snd

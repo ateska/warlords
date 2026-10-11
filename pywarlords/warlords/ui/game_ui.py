@@ -1,4 +1,5 @@
 """pygame front-end recreating the original Warlords screens."""
+import inspect
 import os
 import time
 
@@ -9,6 +10,8 @@ from ..gamedata import (MAP_W, MAP_H, DX, DY, CITY_DX, CITY_DY, NEUTRAL, HERO, N
 from ..engine import Game
 from ..ai import AI
 from ..ui_base import UIBase
+from ..gamedata import find_file
+from .. import web
 from ..state import M_ARMY, M_EXPLORED, F_ACTIVE, F_DONE
 from ..pathfind import dirto
 from .sound import Sound
@@ -80,6 +83,7 @@ class GameUI(UIBase):
 		self.save_dir = save_dir or data.game_dir
 		self.game = None
 		self.snd = Sound(data.game_dir)
+		web.report('sound', "%s %s" % (self.snd.ok, pygame.mixer.get_init() if self.snd.ok else None))
 		self.mode = 'army'            # army / prod / info
 		self.status_msg = None
 		self.info_lines = None
@@ -125,7 +129,7 @@ class GameUI(UIBase):
 				out.append(('key', ev.key, ev.mod, ev.unicode))
 		return out
 
-	def wait(self, ms):
+	async def wait(self, ms):
 		"""Delay while keeping the window responsive."""
 		if getattr(self, 'fast', False):
 			ms = 0
@@ -136,18 +140,19 @@ class GameUI(UIBase):
 					self.fast = True
 					end = 0
 			self.scr.present()
-			self.scr.tick(60)
+			await self.scr.tick(60)
 
 	# ------------------------------------------------------------------
 	# sound (FUN_12ab_0048: the samples play synchronously, FUN_1224_0004: beep)
 	# ------------------------------------------------------------------
-	def play_sound(self, name, sync=True, fallback_ms=0):
+	async def play_sound(self, name, sync=True, fallback_ms=0):
 		length = 0
 		if self.sound and not getattr(self, 'fast', False):
 			length = self.snd.play(name)
+			web.report('played', "%s %.2f" % (name, length or 0))
 		if not length:
 			if fallback_ms:
-				self.wait(fallback_ms)
+				await self.wait(fallback_ms)
 			return
 		if sync:
 			end = pygame.time.get_ticks() + int(length * 1000) + 100
@@ -162,13 +167,13 @@ class GameUI(UIBase):
 					self.snd.stop()
 					break
 				self.scr.present()
-				self.scr.tick(60)
+				await self.scr.tick(60)
 
 	def beep(self):
 		if self.sound:
 			self.snd.play('beep')
 
-	def wait_click(self, draw=None):
+	async def wait_click(self, draw=None):
 		"""Wait for a click or a key press."""
 		while True:
 			if draw:
@@ -178,15 +183,15 @@ class GameUI(UIBase):
 				if e[0] == 'down' or (e[0] == 'key' and e[1] not in (pygame.K_LSHIFT, pygame.K_RSHIFT,
 						pygame.K_LALT, pygame.K_RALT, pygame.K_LCTRL, pygame.K_RCTRL)):
 					return e
-			self.scr.tick(30)
+			await self.scr.tick(30)
 
 	# ==================================================================
 	# top level flow
 	# ==================================================================
-	def run(self, load_path=None, quick=None):
+	async def run(self, load_path=None, quick=None):
 		try:
 			if load_path is None and quick is None:
-				self.title_screen()
+				await self.title_screen()
 			while True:
 				if quick is not None:
 					res = ('start', quick[0], quick[1])
@@ -195,7 +200,7 @@ class GameUI(UIBase):
 					res = ('load', load_path)
 					load_path = None
 				else:
-					res = self.setup_screen()
+					res = await self.setup_screen()
 				if res is None:
 					return
 				g = Game(self.data, self, seed=self.seed)
@@ -203,14 +208,14 @@ class GameUI(UIBase):
 				self.game = g
 				if res[0] == 'start':
 					g.new_game(res[1], res[2])
-					g.run()
+					await g.run()
 				else:
 					g.s.load(res[1])
 					g.recompute_totals_all()
 					if not g.s.human[g.s.current] or not g.s.alive[g.s.current]:
-						g.run()
+						await g.run()
 					else:
-						g.run(resume_player=g.s.current)
+						await g.run(resume_player=g.s.current)
 				if getattr(g, 'restart', None):
 					load_path = g.restart if g.restart != 'setup' else None
 					continue
@@ -219,22 +224,34 @@ class GameUI(UIBase):
 			return
 
 	# ------------------------------------------------------------------
-	def title_screen(self):
+	async def title_screen(self):
 		s = self.scr
 		img = self.assets.surface('MAIN', 3)
 		s.blit(img, (0, 0))
 		s.present()
-		self.play_sound('horn', sync=False)
+		# in a browser, sound may only start after the first click or key: then the title waits
+		# for it, plays the horn, and the next click (or the usual 8 seconds) moves on
+		locked = not web.audio_unlocked()
+		if not locked:
+			await self.play_sound('horn', sync=False)
+		skip_up = False
 		t0 = pygame.time.get_ticks()
-		while pygame.time.get_ticks() - t0 < 8000:
+		while locked or pygame.time.get_ticks() - t0 < 8000:
 			s.blit(img, (0, 0))
 			s.present()
 			for e in self.events():
-				if e[0] in ('up', 'key'):
+				if locked and e[0] in ('down', 'key'):
+					locked = False
+					skip_up = e[0] == 'down'
+					await self.play_sound('horn', sync=False)
+					t0 = pygame.time.get_ticks()
+				elif e[0] == 'up' and skip_up:
+					skip_up = False
+				elif e[0] in ('up', 'key'):
 					return
-			s.tick(30)
+			await s.tick(30)
 
-	def setup_screen(self):
+	async def setup_screen(self):
 		"""The player selection screen (SETUP.PCK)."""
 		s = self.scr
 		human = [1] * 8
@@ -281,7 +298,7 @@ class GameUI(UIBase):
 			else:
 				human[i] = 1
 
-		def begin():
+		async def begin():
 			draw()
 			s.fill((368, 5, 266, 156), BLACK)
 			y = 14
@@ -289,7 +306,7 @@ class GameUI(UIBase):
 				s.text_center(500, y, wd, ORANGE)
 				y += 30
 			s.present()
-			self.play_sound('drumroll', fallback_ms=800)
+			await self.play_sound('drumroll', fallback_ms=800)
 
 		while True:
 			draw()
@@ -300,10 +317,10 @@ class GameUI(UIBase):
 					if pygame.K_F1 <= e[1] <= pygame.K_F8:
 						cycle(e[1] - pygame.K_F1)
 					elif e[1] in (pygame.K_s, pygame.K_RETURN):
-						begin()
+						await begin()
 						return ('start', human, level)
 					elif e[1] == pygame.K_l:
-						p = self.load_dialog()
+						p = await self.load_dialog()
 						if p:
 							return ('load', p)
 					elif e[1] == pygame.K_ESCAPE:
@@ -320,15 +337,15 @@ class GameUI(UIBase):
 								cycle(i)
 				elif e[0] == 'up' and e[2] == 1:
 					if pressed[0] == 'start' and _inside(e[1], start_btn):
-						begin()
+						await begin()
 						return ('start', human, level)
 					if pressed[0] == 'load' and _inside(e[1], load_btn):
 						pressed[0] = None
-						p = self.load_dialog()
+						p = await self.load_dialog()
 						if p:
 							return ('load', p)
 					pressed[0] = None
-			s.tick(30)
+			await s.tick(30)
 
 	def _draw_level_icon(self, x, y, human, level):
 		"""Human / computer level icons (right strip of SETUP.PCK)."""
@@ -506,33 +523,33 @@ class GameUI(UIBase):
 	# ==================================================================
 	# UIBase hooks
 	# ==================================================================
-	def message(self, text, wait=True):
+	async def message(self, text, wait=True):
 		self.log.append(text)
 		if self.game is None:
 			return
 		self.status_msg = text
 		self.draw_main()
 		if wait:
-			self.wait_click(self.draw_main)
+			await self.wait_click(self.draw_main)
 		self.status_msg = None
 
-	def status(self, text):
+	async def status(self, text):
 		self.log.append(text)
 		if self.game is None:
 			return
 		self.status_msg = text
 		self.draw_main()
 		self.scr.present()
-		self.wait(700)
+		await self.wait(700)
 		self.status_msg = None
 
-	def picture(self, name, lines=()):
+	async def picture(self, name, lines=()):
 		"""RAZE / BEG / HEAD pictures (FUN_11a6_067c): two panels plus a message."""
 		scr = self.scr
 		key = {'raze': ('RAZE', 0), 'beg': ('BEG', 1), 'head': ('HEAD', 2)}.get(name)
 		if key is None:
 			for ln in lines:
-				self.message(ln)
+				await self.message(ln)
 			return
 		img = self.assets.surface(key[0], key[1])
 		w, h = img.get_size()
@@ -555,10 +572,10 @@ class GameUI(UIBase):
 		cur = list(lines)
 		if name == 'raze':
 			draw()
-			self.play_sound('war')
-		self.wait_click(draw)
+			await self.play_sound('war')
+		await self.wait_click(draw)
 
-	def ask(self, lines, buttons, default=0):
+	async def ask(self, lines, buttons, default=0):
 		"""Modal dialog box in the middle of the map (FUN_1312_20d8 style)."""
 		scr = self.scr
 		f = self.assets.fant
@@ -608,16 +625,16 @@ class GameUI(UIBase):
 					for k, b in enumerate(buttons):
 						if ch and b.strip().lower().startswith(ch):
 							return k
-			scr.tick(30)
+			await scr.tick(30)
 
-	def hero_offer(self, city_name, price, gold):
-		return self.ask(["A hero in %s offers" % city_name, "to join you for %d gp!" % price,
+	async def hero_offer(self, city_name, price, gold):
+		return await self.ask(["A hero in %s offers" % city_name, "to join you for %d gp!" % price,
 			"You have %d gp" % gold], [" Accept ", " Reject "]) == 0
 
-	def name_hero(self, default):
-		return self.text_input("Name of Hero", default)
+	async def name_hero(self, default):
+		return await self.text_input("Name of Hero", default)
 
-	def text_input(self, title, default, maxlen=15):
+	async def text_input(self, title, default, maxlen=15):
 		scr = self.scr
 		text = default
 		x, y, w, h = 86, 56, 190, 52
@@ -639,13 +656,14 @@ class GameUI(UIBase):
 						return default
 					if e[1] == pygame.K_BACKSPACE:
 						text = text[:-1]
-					elif e[3] and 32 <= ord(e[3]) < 127 and len(text) < maxlen:
+					elif e[3] and 32 <= ord(e[3]) < 127 and len(text) < maxlen and \
+							not e[2] & (pygame.KMOD_ALT | pygame.KMOD_CTRL | pygame.KMOD_META):
 						text += e[3]
 				elif e[0] == 'up' and e[2] == 1 and _inside(e[1], (x + w // 2 - 25, y + h - 18, 50, 15)):
 					return text.strip() or default
-			scr.tick(30)
+			await scr.tick(30)
 
-	def production_report(self, text, city=None):
+	async def production_report(self, text, city=None):
 		"""Shown in the status area like the original: Yes / No / End Report."""
 		scr = self.scr
 		if city is not None:
@@ -680,9 +698,9 @@ class GameUI(UIBase):
 						return 'no'
 					if e[1] in (pygame.K_e, pygame.K_ESCAPE):
 						return 'end'
-			scr.tick(30)
+			await scr.tick(30)
 
-	def choose(self, title, options):
+	async def choose(self, title, options):
 		"""Scrollable list (sage questions, take/drop items)."""
 		if not options:
 			return None
@@ -746,13 +764,13 @@ class GameUI(UIBase):
 					top = sel
 				if sel >= top + n:
 					top = sel - n + 1
-			scr.tick(30)
+			await scr.tick(30)
 
 	def show_moves(self, game, player):
 		s = game.s
 		return bool(s.global_observe or s.observe[player]) or not any(s.human[q] and s.alive[q] for q in range(8))
 
-	def ai_turn_start(self, game, p):
+	async def ai_turn_start(self, game, p):
 		s = game.s
 		self.mode = 'army'
 		name = game.clan_name(p)
@@ -767,12 +785,12 @@ class GameUI(UIBase):
 				for q in range(8):
 					s.human[q] = 1
 		if self.show_moves(game, p):
-			self.wait(400)
+			await self.wait(400)
 
 	def ai_turn_end(self, game, p):
 		self.status_msg = None
 
-	def army_moved(self, game, armies, x0, y0, x1, y1):
+	async def army_moved(self, game, armies, x0, y0, x1, y1):
 		s = game.s
 		human_move = s.human[s.current]
 		if not human_move and not self.show_moves(game, s.current):
@@ -782,20 +800,20 @@ class GameUI(UIBase):
 			game.center_view(x1, y1)
 		self.draw_main()
 		self.scr.present()
-		self.wait(60 if human_move else 40)
+		await self.wait(60 if human_move else 40)
 
 	def refresh(self, game):
 		self.draw_main()
 		self.scr.present()
 
-	def game_over(self, game, lines):
+	async def game_over(self, game, lines):
 		for ln in lines:
-			self.message(ln)
+			await self.message(ln)
 
 	# ==================================================================
 	# battle screen
 	# ==================================================================
-	def battle(self, game, b, caption=None):
+	async def battle(self, game, b, caption=None):
 		"""The battle as in the original: WAR explosion, then the battle box over the map with the
 		defenders on top and the attackers below, and (for the player's own attacks) a battle scene in
 		place of the strategic map."""
@@ -807,11 +825,11 @@ class GameUI(UIBase):
 			return
 		self.status_msg = caption
 		try:
-			self._battle(game, b, caption)
+			await self._battle(game, b, caption)
 		finally:
 			self.status_msg = None
 
-	def _battle(self, game, b, caption):
+	async def _battle(self, game, b, caption):
 		scr = self.scr
 		a = self.assets
 		s = game.s
@@ -825,7 +843,7 @@ class GameUI(UIBase):
 		self.draw_main()
 		scr.blit(war, (max(MAP_X, min(MAP_X + 360 - 112, px - 56)), max(MAP_Y, min(MAP_Y + 160 - 56, py - 28))))
 		scr.present()
-		self.play_sound('war', fallback_ms=500)
+		await self.play_sound('war', fallback_ms=500)
 		att = list(b.attackers)
 		dfn = list(b.defenders)
 		alive_a = [1] * len(att)
@@ -872,30 +890,30 @@ class GameUI(UIBase):
 
 		if b.neutral or not dfn:
 			draw()
-			self.wait(600)
+			await self.wait(600)
 			if b.result == 0:
 				for i in range(len(att)):
 					hit[0] = ('a', i)
 					draw()
-					self.wait(150)
+					await self.wait(150)
 					hit[0] = None
 					dead[0] = ('a', i)
 					draw()
-					self.wait(150)
+					await self.wait(150)
 					dead[0] = None
 					alive_a[i] = 0
 			draw()
-			self.wait(700)
+			await self.wait(700)
 			return
 		draw()
-		self.wait(500)
+		await self.wait(500)
 		for (ia, idd, loser) in b.rounds:
 			cur_a[0] = ia
 			side, idx = ('a', ia) if loser == 'a' else ('d', idd)
 			hit[0] = (side, idx)
 			draw()
 			self._war_sound()
-			self.wait(140)
+			await self.wait(140)
 			hit[0] = None
 			if side == 'a':
 				hp_a[idx] -= 1
@@ -906,16 +924,16 @@ class GameUI(UIBase):
 			if killed:
 				dead[0] = (side, idx)
 				draw()
-				self.wait(160)
+				await self.wait(160)
 				dead[0] = None
 				if side == 'a':
 					alive_a[idx] = 0
 				else:
 					alive_d[idx] = 0
 			draw()
-			self.wait(60)
+			await self.wait(60)
 		draw()
-		self.wait(800)
+		await self.wait(800)
 
 	def battle_scene(self, game, b):
 		"""Right panel during a battle: sky, the two shields, the terrain and the banners."""
@@ -968,10 +986,10 @@ class GameUI(UIBase):
 	# ==================================================================
 	# city production panel (status area) - FUN_200c_0516
 	# ==================================================================
-	def city_production(self, game, city, captured=False):
-		self.production_panel(city)
+	async def city_production(self, game, city, captured=False):
+		await self.production_panel(city)
 
-	def production_panel(self, city):
+	async def production_panel(self, city):
 		g = self.game
 		s = self.s
 		scr = self.scr
@@ -1054,17 +1072,17 @@ class GameUI(UIBase):
 				if act == 'Prod' and sel[0] is not None:
 					if not g.start_production(city, sel[0]):
 						msg[0] = "Not enough gold!"
-						self.message("Not enough gold!")
+						await self.message("Not enough gold!")
 				if act == 'Loc' and sel[0] is not None and sel[0] != NAVY and s.ncities[p] > 1:
-					tgt = self.pick_city_on_map("Click on the destination city")
+					tgt = await self.pick_city_on_map("Click on the destination city")
 					if tgt is not None and tgt.owner == p and tgt is not city:
 						if len(g.vectors_into(tgt)) >= 4:
-							self.message("%s is full!" % tgt.name)
+							await self.message("%s is full!" % tgt.name)
 						elif g.start_production(city, sel[0], vector_to=tgt):
-							self.message("Production transferred from %s to %s" % (city.name, tgt.name))
+							await self.message("Production transferred from %s to %s" % (city.name, tgt.name))
 						else:
-							self.message("Not enough gold!")
-			scr.tick(30)
+							await self.message("Not enough gold!")
+			await scr.tick(30)
 
 	def _mark_city(self, c):
 		s = self.s
@@ -1074,7 +1092,7 @@ class GameUI(UIBase):
 			if (self.anim // 8) % 2 == 0:
 				self.scr.box((px, py, 80, 40), YELLOW)
 
-	def pick_city_on_map(self, prompt):
+	async def pick_city_on_map(self, prompt):
 		"""Let the player click a city (vectoring). Returns a City or None."""
 		s = self.s
 		self.status_msg = prompt
@@ -1095,7 +1113,7 @@ class GameUI(UIBase):
 						m = self.mini_at(e[1])
 						if m:
 							self.game.center_view(*m)
-				self.scr.tick(30)
+				await self.scr.tick(30)
 		finally:
 			self.status_msg = None
 
@@ -1117,7 +1135,7 @@ class GameUI(UIBase):
 	# ==================================================================
 	# the human turn
 	# ==================================================================
-	def human_turn(self, game, p):
+	async def human_turn(self, game, p):
 		self.game = game
 		self.fast = False
 		s = game.s
@@ -1125,12 +1143,13 @@ class GameUI(UIBase):
 		self.info_lines = None
 		self.end_turn = False
 		self.result = None
+		web.report('human_turn', "%d/%d" % (s.turn, p))
 		first = True
 		rdown = None
 		while not self.end_turn and not game.quit:
 			if first:
 				first = False
-				game.human_turn_production(p)
+				await game.human_turn_production(p)
 				if s.turn == 1:
 					self.info_lines = None
 			self.anim += 1
@@ -1148,7 +1167,7 @@ class GameUI(UIBase):
 					start = rdown
 					rdown = None
 					if cmd:
-						self.command(cmd)
+						await self.command(cmd)
 					else:
 						t = self.tile_at(e[1])
 						if t and start and self.tile_at(start) == t:
@@ -1157,14 +1176,18 @@ class GameUI(UIBase):
 					continue
 				elif e[0] == 'down' and e[2] == 1:
 					self.info_lines = None
-					self.left_click(e[1])
+					await self.left_click(e[1])
 				elif e[0] == 'wheel':
 					pass
 				elif e[0] == 'key':
-					self.key(e[1], e[2])
+					await self.key(e[1], e[2])
+				elif e[0] == 'callback':          # scripted tests
+					r = e[1]()
+					if inspect.isawaitable(r):
+						await r
 				if self.end_turn or game.quit:
 					break
-			self.scr.tick(30)
+			await self.scr.tick(30)
 		game.deselect()
 		return 'quit' if game.quit else 'end'
 
@@ -1189,12 +1212,12 @@ class GameUI(UIBase):
 					c = DIR_CURSORS[d] if d != 0xff else 'arrow'
 		self.scr.cursor = c
 
-	def left_click(self, pos):
+	async def left_click(self, pos):
 		g = self.game
 		s = self.s
 		for name, rect, grey, red in BUTTONS:
 			if _inside(pos, rect):
-				self.button(name)
+				await self.click_button(name)
 				return
 		m = self.mini_at(pos)
 		if m is not None:
@@ -1214,7 +1237,7 @@ class GameUI(UIBase):
 		if self.mode == 'prod':
 			c = s.city_at(x, y)
 			if c is not None and c.owner == p:
-				self.production_panel(c)
+				await self.production_panel(c)
 			return
 		own_here = [a for a in s.armies_at(x, y) if a.owner == p]
 		if s.cur_army is not None:
@@ -1227,14 +1250,14 @@ class GameUI(UIBase):
 					g.select_stack(x, y, False)
 				return
 			if g.attack_target_ok(x, y):
-				g.attack(x, y)
+				await g.attack(x, y)
 				return
 			if own_here and max(abs(x - cur.x), abs(y - cur.y)) > 1 and False:
 				g.select_stack(x, y, False)
 				return
-			n = g.move_to(x, y)
+			n = await g.move_to(x, y)
 			if n == -1:
-				self.message("You cannot move there!", wait=False)
+				await self.message("You cannot move there!", wait=False)
 			return
 		if own_here:
 			mods = pygame.key.get_mods()
@@ -1242,7 +1265,7 @@ class GameUI(UIBase):
 			return
 		g.center_view(x, y)
 
-	def button(self, name):
+	async def click_button(self, name):
 		g = self.game
 		s = self.s
 		if name == 'army':
@@ -1267,39 +1290,39 @@ class GameUI(UIBase):
 			if a is not None:
 				g.center_view(a.x, a.y)
 			else:
-				self.message("No more armies to move!", wait=False)
+				await self.message("No more armies to move!", wait=False)
 		elif name == 'quit':
 			g.skip()
 		elif name == 'def':
 			g.sentry()
 
-	def key(self, k, mod):
+	async def key(self, k, mod):
 		g = self.game
 		s = self.s
 		if mod & pygame.KMOD_ALT and k in ALT_KEYS:
-			self.command(ALT_KEYS[k])
+			await self.command(ALT_KEYS[k])
 			return
 		if mod & pygame.KMOD_CTRL and k == pygame.K_q:
-			self.command('quit')
+			await self.command('quit')
 			return
 		if k in NUMPAD and s.cur_army is not None:
 			d = NUMPAD[k]
 			cur = s.armies[s.cur_army]
 			tx, ty = cur.x + DX[d], cur.y + DY[d]
 			if g.attack_target_ok(tx, ty):
-				g.attack(tx, ty, d)
+				await g.attack(tx, ty, d)
 			else:
-				g.step(d)
+				await g.step(d)
 			return
 		if k == pygame.K_ESCAPE:
 			self.mode = 'army'
 			g.deselect()
 			return
 		if k in (pygame.K_e,) and mod & pygame.KMOD_SHIFT:
-			self.command('endturn')
+			await self.command('endturn')
 			return
 		if k in KEYS:
-			self.command(KEYS[k])
+			await self.command(KEYS[k])
 		elif 32 <= k < 127 and not mod & (pygame.KMOD_CTRL | pygame.KMOD_ALT):
 			self.beep()
 
@@ -1389,71 +1412,71 @@ class GameUI(UIBase):
 	# ==================================================================
 	# commands
 	# ==================================================================
-	def command(self, cmd):
+	async def command(self, cmd):
 		g = self.game
 		s = self.s
 		p = s.current
 		if cmd == 'endturn':
-			if g.surrender_check() == 0:
+			if await g.surrender_check() == 0:
 				self.end_turn = True
 		elif cmd == 'quit':
-			ans = self.ask(["Exit to DOS?", "This won't be popular!"], [" Yes ", " No "])
+			ans = await self.ask(["Exit to DOS?", "This won't be popular!"], [" Yes ", " No "])
 			if ans == 0:
 				g.quit = True
 		elif cmd == 'about':
-			self.about()
+			await self.about()
 		elif cmd == 'observe':
 			s.global_observe = 0 if s.global_observe else 1
 		elif cmd == 'sound':
 			self.sound = not self.sound
 		elif cmd == 'save':
-			self.save_dialog()
+			await self.save_dialog()
 		elif cmd == 'load':
-			path = self.load_dialog()
+			path = await self.load_dialog()
 			if path:
 				g.restart = path
 				g.quit = True
 		elif cmd == 'build':
-			g.build()
+			await g.build()
 		elif cmd == 'capital':
 			g.center_on_capital()
 		elif cmd == 'disband':
-			g.disband()
+			await g.disband()
 		elif cmd == 'raze':
-			g.raze()
+			await g.raze()
 		elif cmd == 'search':
 			if s.cur_army is None:
-				self.message("An army must be selected to search")
+				await self.message("An army must be selected to search")
 			else:
-				g.search()
+				await g.search()
 		elif cmd == 'take':
-			self.take()
+			await self.take()
 		elif cmd == 'drop':
-			self.drop()
+			await self.drop()
 		elif cmd == 'inv':
-			self.inventory()
+			await self.inventory()
 		elif cmd == 'find':
-			self.find_hero()
+			await self.find_hero()
 		elif cmd == 'nxt':
-			self.button('nxt')
+			await self.click_button('nxt')
 		elif cmd.startswith('r_'):
-			self.report(cmd[2:])
+			await self.report(cmd[2:])
 		elif cmd == 'v_stack':
-			self.view_stack()
+			await self.view_stack()
 		elif cmd == 'v_prod':
-			self.view_production()
+			await self.view_production()
 		elif cmd == 'v_heroes':
-			self.view_heroes()
+			await self.view_heroes()
 		elif cmd == 'v_ruins':
-			self.view_ruins()
+			await self.view_ruins()
 		elif cmd == 'v_control':
-			self.view_control()
+			await self.view_control()
 
-	def about(self):
+	async def about(self):
 		lines = ["W A R L O R D S  Ver 2.10", "Design, Graphics & Programming", "by Steve Fawkner",
 			"AI by Roger Keating", "IBM version by Stephen Hart", "A Gregor Whiley Production",
 			"", "Python reimplementation (pywarlords)"]
-		self.ask(lines, ["  OK  "])
+		await self.ask(lines, ["  OK  "])
 
 	# ------------------------------------------------------------------
 	def tile_info(self, x, y):
@@ -1488,40 +1511,40 @@ class GameUI(UIBase):
 
 	# ------------------------------------------------------------------
 	# items
-	def take(self):
+	async def take(self):
 		g = self.game
 		s = self.s
 		if s.cur_army is None or s.cur_hero is None:
-			self.message("Hero must be selected to take an item")
+			await self.message("Hero must be selected to take an item")
 			return
 		h = s.armies[s.cur_hero]
 		its = s.items_on_ground(h.x, h.y)
 		if not its:
-			self.message("You have found nothing!")
+			await self.message("You have found nothing!")
 			return
-		k = self.choose("Taking an item ...", [it.name for it in its])
+		k = await self.choose("Taking an item ...", [it.name for it in its])
 		if k is not None:
 			g.take_item(its[k])
 
-	def drop(self):
+	async def drop(self):
 		g = self.game
 		s = self.s
 		if s.cur_army is None or s.cur_hero is None:
-			self.message("Hero must be selected to drop an item")
+			await self.message("Hero must be selected to drop an item")
 			return
 		h = s.armies[s.cur_hero]
 		its = s.items_of(h)
 		if not its:
-			self.message("%s has no items!" % s.hero_name(h))
+			await self.message("%s has no items!" % s.hero_name(h))
 			return
-		k = self.choose("Dropping an item ...", [it.name for it in its])
+		k = await self.choose("Dropping an item ...", [it.name for it in its])
 		if k is not None:
 			g.drop_item(its[k])
 
-	def inventory(self):
+	async def inventory(self):
 		s = self.s
 		if s.cur_army is None or s.cur_hero is None:
-			self.message("Hero must be selected to Inventory")
+			await self.message("Hero must be selected to Inventory")
 			return
 		h = s.armies[s.cur_hero]
 		its = s.items_of(h)
@@ -1530,16 +1553,16 @@ class GameUI(UIBase):
 			lines.append("None")
 		for it in its:
 			lines.append("%s  %s %d" % (it.name, "Bat +" if it.kind == 1 else "Com +", it.value))
-		self.ask(lines, ["  OK  "])
+		await self.ask(lines, ["  OK  "])
 
-	def find_hero(self):
+	async def find_hero(self):
 		g = self.game
 		s = self.s
 		heroes = [a for a in s.live_armies() if a.owner == s.current and a.type == HERO and a.x >= 0]
 		if not heroes:
-			self.message("You have no heroes!")
+			await self.message("You have no heroes!")
 			return
-		k = self.choose("Your heroes...", [s.hero_name(h) for h in heroes])
+		k = await self.choose("Your heroes...", [s.hero_name(h) for h in heroes])
 		if k is not None:
 			h = heroes[k]
 			g.center_view(h.x, h.y)
@@ -1552,11 +1575,11 @@ class GameUI(UIBase):
 	# ==================================================================
 	# reports
 	# ==================================================================
-	def report(self, kind):
+	async def report(self, kind):
 		g = self.game
 		s = self.s
 		if kind == 'hatreds':
-			return self.report_hatreds()
+			return await self.report_hatreds()
 		vals = [0] * 8
 		label = {'armies': "Armies", 'cities': "Cities", 'gold': "Gold", 'prod': "Produce",
 			'winning': "Winning"}[kind]
@@ -1589,9 +1612,9 @@ class GameUI(UIBase):
 			scr.vline(534, 167, 199, DGREY)
 			scr.text_center(586, 178, label)
 
-		self.wait_click(draw)
+		await self.wait_click(draw)
 
-	def report_hatreds(self):
+	async def report_hatreds(self):
 		g = self.game
 		s = self.s
 		scr = self.scr
@@ -1627,16 +1650,16 @@ class GameUI(UIBase):
 			scr.fill((0, 167, 640, 33), GREY)
 			scr.text_center(320, 178, "How the other leaders view you")
 
-		self.wait_click(draw)
+		await self.wait_click(draw)
 
 	# ==================================================================
 	# views
 	# ==================================================================
-	def view_stack(self):
+	async def view_stack(self):
 		g = self.game
 		s = self.s
 		if s.cur_army is None:
-			self.message("An army must be selected!")
+			await self.message("An army must be selected!")
 			return
 		cur = s.armies[s.cur_army]
 		stack = [a for a in s.armies_at(cur.x, cur.y) if a.owner == s.current][:8]
@@ -1686,9 +1709,9 @@ class GameUI(UIBase):
 									chosen.discard(a.index)
 								else:
 									chosen.add(a.index)
-			scr.tick(30)
+			await scr.tick(30)
 
-	def view_production(self):
+	async def view_production(self):
 		g = self.game
 		s = self.s
 		own = [c for c in s.cities if c.owner == s.current]
@@ -1702,7 +1725,7 @@ class GameUI(UIBase):
 				k = own.index(c)
 		while True:
 			c = own[k]
-			ans = self._prod_dialog(c)
+			ans = await self._prod_dialog(c)
 			if ans == 'next':
 				k = (k + 1) % len(own)
 			elif ans == 'prev':
@@ -1710,7 +1733,7 @@ class GameUI(UIBase):
 			else:
 				return
 
-	def _prod_dialog(self, c):
+	async def _prod_dialog(self, c):
 		g = self.game
 		s = self.s
 		scr = self.scr
@@ -1799,20 +1822,20 @@ class GameUI(UIBase):
 				if act == 'Prod' and sel[0] is not None:
 					# the production screen ignores Enhance (original quirk)
 					if not g.start_production(c, sel[0], enhance=False):
-						self.message("Not enough gold!")
+						await self.message("Not enough gold!")
 				if act == 'Loc' and sel[0] is not None and sel[0] != NAVY:
-					tgt = self.pick_city_on_map("Click on the destination city")
+					tgt = await self.pick_city_on_map("Click on the destination city")
 					if tgt is not None and tgt.owner == p and tgt is not c:
 						if len(g.vectors_into(tgt)) < 4:
 							g.start_production(c, sel[0], vector_to=tgt, enhance=False)
-			scr.tick(30)
+			await scr.tick(30)
 
-	def view_heroes(self):
+	async def view_heroes(self):
 		g = self.game
 		s = self.s
 		heroes = [a for a in s.live_armies() if a.owner == s.current and a.type == HERO and a.x >= 0][:12]
 		if not heroes:
-			self.message("You have no heroes!")
+			await self.message("You have no heroes!")
 			return
 		scr = self.scr
 		k = 0
@@ -1835,7 +1858,7 @@ class GameUI(UIBase):
 				"Strength: %d   Move: %d" % (h.strength, h.moves), "Bat + %d   Com + %d" % (bat, cmd)]
 			for it in s.items_of(h):
 				lines.append("%s  %s %d" % (it.name, "Bat +" if it.kind == 1 else "Com +", it.value))
-			ans = self.ask(lines, [" Next ", " Prev ", " Exit "])
+			ans = await self.ask(lines, [" Next ", " Prev ", " Exit "])
 			if ans == 0:
 				k = (k + 1) % len(heroes)
 			elif ans == 1:
@@ -1843,7 +1866,7 @@ class GameUI(UIBase):
 			else:
 				return
 
-	def view_ruins(self):
+	async def view_ruins(self):
 		"""'Status of special locations': markers on the strategic map."""
 		s = self.s
 		a = self.assets
@@ -1871,9 +1894,9 @@ class GameUI(UIBase):
 			scr.fill((0, 167, 640, 33), GREY)
 			scr.text_center(320, 178, "Status of special locations")
 
-		self.wait_click(draw)
+		await self.wait_click(draw)
 
-	def view_control(self):
+	async def view_control(self):
 		g = self.game
 		s = self.s
 		scr = self.scr
@@ -1921,13 +1944,14 @@ class GameUI(UIBase):
 								s.observe[q] = 0 if s.observe[q] else 1
 							elif x + 265 <= px < x + 330:
 								s.enhance[q] = 0 if s.enhance[q] else 1
-			scr.tick(30)
+			await scr.tick(30)
 
 	# ==================================================================
 	# save / load
 	# ==================================================================
 	def _slot_path(self, i):
-		return os.path.join(self.save_dir, "WAR%d.SAV" % (i + 1))
+		name = "WAR%d.SAV" % (i + 1)
+		return find_file(self.save_dir, name) or os.path.join(self.save_dir, name)
 
 	def _slot_names(self):
 		import struct
@@ -1944,7 +1968,7 @@ class GameUI(UIBase):
 				names.append(None)
 		return names
 
-	def _slots_dialog(self, title):
+	async def _slots_dialog(self, title):
 		scr = self.scr
 		names = self._slot_names()
 		x, y, w, h = 56, 24, 210, 116
@@ -1986,10 +2010,10 @@ class GameUI(UIBase):
 						cy = y + 28 + (i % 4) * 20
 						if _inside(e[1], (cx, cy, 92, 14)):
 							sel[0] = i
-			scr.tick(30)
+			await scr.tick(30)
 
-	def load_dialog(self):
-		k, names = self._slots_dialog("Load")
+	async def load_dialog(self):
+		k, names = await self._slots_dialog("Load")
 		if k is None or names[k] is None:
 			return None
 		p = self._slot_path(k)
@@ -1997,17 +2021,19 @@ class GameUI(UIBase):
 			p = os.path.join(self.save_dir, "war%d.sav" % (k + 1))
 		return p
 
-	def save_dialog(self):
-		k, names = self._slots_dialog("Save")
+	async def save_dialog(self):
+		k, names = await self._slots_dialog("Save")
 		if k is None:
 			return
-		name = self.text_input("Name", names[k] or "")
+		name = await self.text_input("Name", names[k] or "")
 		self.s.save_name = name
 		try:
-			self.s.save(self._slot_path(k))
-			self.message("Game saved.")
+			path = self._slot_path(k)
+			self.s.save(path)
+			web.persist_file(path)
+			await self.message("Game saved.")
 		except OSError:
-			self.message("Error occured in saving")
+			await self.message("Error occured in saving")
 
 
 def _inside(p, r):
